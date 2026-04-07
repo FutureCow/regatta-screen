@@ -14,10 +14,7 @@ class TimerNotifier extends Notifier<TimerState> {
 
   void start() {
     if (state.status == TimerStatus.running) return;
-    state = state.copyWith(
-      status: TimerStatus.running,
-      startedAt: state.startedAt ?? DateTime.now().add(state.remaining),
-    );
+    state = state.copyWith(status: TimerStatus.running);
     _ticker?.cancel();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
   }
@@ -31,7 +28,10 @@ class TimerNotifier extends Notifier<TimerState> {
 
   void reset() {
     _ticker?.cancel();
-    state = TimerState.initial().copyWith(duration: state.duration, remaining: state.duration);
+    state = TimerState.initial().copyWith(
+      duration: state.duration,
+      remaining: state.duration,
+    );
   }
 
   void setDuration(Duration d) {
@@ -60,8 +60,14 @@ class TimerNotifier extends Notifier<TimerState> {
 
   void _tick() {
     if (state.remaining > Duration.zero) {
+      // Counting down
       state = state.copyWith(
         remaining: state.remaining - const Duration(seconds: 1),
+      );
+    } else if (state.isRunning) {
+      // Counting up (race in progress) — increment raceElapsedSeconds to force rebuild
+      state = state.copyWith(
+        raceElapsedSeconds: state.raceElapsedSeconds + 1,
       );
     }
   }

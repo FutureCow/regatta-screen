@@ -5,13 +5,14 @@ class TimerState {
   final TimerStatus status;
   final Duration duration;
   final Duration remaining;
-  final DateTime? startedAt;
+  // Seconds elapsed since the gun (remaining reached 0). Incremented by ticker.
+  final int raceElapsedSeconds;
 
   const TimerState({
     required this.status,
     required this.duration,
     required this.remaining,
-    this.startedAt,
+    this.raceElapsedSeconds = 0,
   });
 
   factory TimerState.initial() => const TimerState(
@@ -23,22 +24,18 @@ class TimerState {
   bool get isRunning => status == TimerStatus.running;
   bool get isCountingDown => remaining > Duration.zero;
 
-  /// Positive elapsed time after start (0 during countdown)
-  Duration get raceElapsed =>
-      startedAt != null && !isCountingDown
-          ? DateTime.now().difference(startedAt!.add(duration))
-          : Duration.zero;
+  Duration get raceElapsed => Duration(seconds: raceElapsedSeconds);
 
   TimerState copyWith({
     TimerStatus? status,
     Duration? duration,
     Duration? remaining,
-    DateTime? startedAt,
+    int? raceElapsedSeconds,
   }) =>
       TimerState(
         status: status ?? this.status,
         duration: duration ?? this.duration,
         remaining: remaining ?? this.remaining,
-        startedAt: startedAt ?? this.startedAt,
+        raceElapsedSeconds: raceElapsedSeconds ?? this.raceElapsedSeconds,
       );
 }
