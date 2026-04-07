@@ -24,7 +24,6 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
     final recorder = ref.watch(trackRecorderProvider);
 
     ref.listen(timerNotifierProvider, (prev, next) {
-      // Auto-start GPS recording when timer starts and <= 5 min remaining
       if (next.isRunning && !recorder.isRecording) {
         if (next.remaining <= const Duration(minutes: 5)) {
           recorder.start();
@@ -37,28 +36,56 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
       }
     });
 
+    return OrientationBuilder(
+      builder: (context, orientation) {
+        if (orientation == Orientation.landscape) {
+          return _LandscapeLayout(state: state, notifier: notifier);
+        }
+        return _PortraitLayout(state: state, notifier: notifier);
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _gpsSub?.cancel();
+    super.dispose();
+  }
+}
+
+// ─── Portrait ────────────────────────────────────────────────────────────────
+
+class _PortraitLayout extends StatelessWidget {
+  final TimerState state;
+  final TimerNotifier notifier;
+  const _PortraitLayout({required this.state, required this.notifier});
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _DurationSelector(
             selected: state.duration,
             onSelect: notifier.setDuration,
             enabled: state.status == TimerStatus.idle,
           ),
-          _TimerDisplay(state: state),
-          Row(
-            children: [
-              Expanded(
-                child: _RoundButton(label: '−1m', onTap: notifier.roundDown),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _RoundButton(label: '+1m', onTap: notifier.roundUp),
-              ),
-            ],
+          Expanded(
+            flex: 3,
+            child: _TimerDisplay(state: state),
           ),
+          Expanded(
+            flex: 1,
+            child: Row(
+              children: [
+                Expanded(child: _RoundButton(label: '−1m', onTap: notifier.roundDown)),
+                const SizedBox(width: 16),
+                Expanded(child: _RoundButton(label: '+1m', onTap: notifier.roundUp)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
@@ -75,13 +102,79 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
       ),
     );
   }
+}
+
+// ─── Landscape ───────────────────────────────────────────────────────────────
+
+class _LandscapeLayout extends StatelessWidget {
+  final TimerState state;
+  final TimerNotifier notifier;
+  const _LandscapeLayout({required this.state, required this.notifier});
 
   @override
-  void dispose() {
-    _gpsSub?.cancel();
-    super.dispose();
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          // Left: controls column
+          Expanded(
+            flex: 2,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _DurationSelector(
+                  selected: state.duration,
+                  onSelect: notifier.setDuration,
+                  enabled: state.status == TimerStatus.idle,
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _RoundButton(
+                        label: '−1m',
+                        onTap: notifier.roundDown,
+                        compact: true,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _RoundButton(
+                        label: '+1m',
+                        onTap: notifier.roundUp,
+                        compact: true,
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _StartButton(
+                        isRunning: state.isRunning,
+                        onTap: state.isRunning ? notifier.stop : notifier.start,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _ResetButton(onTap: notifier.reset),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Right: clock fills the space
+          Expanded(
+            flex: 3,
+            child: _TimerDisplay(state: state),
+          ),
+        ],
+      ),
+    );
   }
 }
+
+// ─── Shared sub-widgets ───────────────────────────────────────────────────────
 
 class _DurationSelector extends StatelessWidget {
   final Duration selected;
@@ -167,17 +260,23 @@ class _TimerDisplay extends StatelessWidget {
         : '+${_format(state.raceElapsed)}';
 
     return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           state.isCountingDown ? 'AFTELLEN' : 'RACE',
           style: theme.textTheme.labelSmall,
         ),
-        const SizedBox(height: 8),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            display,
-            style: theme.textTheme.displayLarge,
+        const SizedBox(height: 4),
+        Expanded(
+          child: FittedBox(
+            fit: BoxFit.contain,
+            child: Text(
+              display,
+              style: theme.textTheme.displayLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+                height: 1.0,
+              ),
+            ),
           ),
         ),
       ],
@@ -188,7 +287,8 @@ class _TimerDisplay extends StatelessWidget {
 class _RoundButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
-  const _RoundButton({required this.label, required this.onTap});
+  final bool compact;
+  const _RoundButton({required this.label, required this.onTap, this.compact = false});
 
   @override
   Widget build(BuildContext context) {
@@ -196,7 +296,7 @@ class _RoundButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 18),
+        padding: EdgeInsets.symmetric(vertical: compact ? 10 : 18),
         decoration: BoxDecoration(
           color: theme.cardColor,
           borderRadius: BorderRadius.circular(16),
@@ -206,7 +306,7 @@ class _RoundButton extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              fontSize: 28,
+              fontSize: compact ? 20 : 28,
               fontWeight: FontWeight.w800,
               color: theme.textTheme.bodyLarge?.color,
             ),
