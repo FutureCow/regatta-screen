@@ -6,16 +6,10 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/gps_provider.dart';
 import '../../providers/track_recorder_provider.dart';
-
-// Placeholder screens — will be replaced in Tasks 13–16
-class _PlaceholderScreen extends StatelessWidget {
-  final String label;
-  const _PlaceholderScreen(this.label);
-  @override
-  Widget build(BuildContext context) => Center(
-        child: Text(label, style: Theme.of(context).textTheme.displaySmall),
-      );
-}
+import '../timer/timer_screen.dart';
+import '../startline/startline_screen.dart';
+import '../data_panel/data_panel_screen.dart';
+import '../settings/settings_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -78,10 +72,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             controller: _pageController,
             onPageChanged: (i) => setState(() => _currentPage = i),
             children: const [
-              _PlaceholderScreen('Timer'),
-              _PlaceholderScreen('Startlijn'),
-              _PlaceholderScreen('Paneel 1'),
-              _PlaceholderScreen('Paneel 2'),
+              TimerScreen(),
+              StartlineScreen(),
+              DataPanelScreen(panelIndex: 1),
+              DataPanelScreen(panelIndex: 2),
             ],
           ),
           // Page indicators
@@ -112,8 +106,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 IconButton(
                   icon: const Icon(Icons.settings_outlined, size: 24),
-                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Instellingen — komt in Task 16')),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
                   ),
                 ),
               ],
