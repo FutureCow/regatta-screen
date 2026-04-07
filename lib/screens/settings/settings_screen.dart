@@ -32,6 +32,7 @@ class _SettingsBody extends ConsumerWidget {
       appBar: AppBar(title: const Text('Instellingen')),
       body: ListView(
         children: [
+          // ── Eenheden ──────────────────────────────────────────────────────
           _Section('Eenheden', [
             _DropdownTile<SpeedUnit>(
               label: 'Snelheid',
@@ -65,6 +66,26 @@ class _SettingsBody extends ConsumerWidget {
               onChanged: (u) => update(settings.copyWith(headingMode: u)),
             ),
           ]),
+
+          // ── Smoothing ────────────────────────────────────────────────────
+          _Section('Vertraging / middeling', [
+            _DropdownTile<int>(
+              label: 'Koers (magnetisch)',
+              value: settings.headingSmoothing,
+              items: const [1, 3, 5, 10],
+              itemLabel: (v) => v == 1 ? '1 seconde' : '$v seconden',
+              onChanged: (v) => update(settings.copyWith(headingSmoothing: v)),
+            ),
+            _DropdownTile<int>(
+              label: 'Snelheid',
+              value: settings.speedSmoothing,
+              items: const [1, 3, 5, 10],
+              itemLabel: (v) => v == 1 ? '1 seconde' : '$v seconden',
+              onChanged: (v) => update(settings.copyWith(speedSmoothing: v)),
+            ),
+          ]),
+
+          // ── Windrichting ──────────────────────────────────────────────────
           _Section('Windrichting', [
             ListTile(
               title: const Text('Windrichting'),
@@ -77,6 +98,8 @@ class _SettingsBody extends ConsumerWidget {
               onTap: () => _showWindPicker(context, settings, update),
             ),
           ]),
+
+          // ── Weergave ──────────────────────────────────────────────────────
           _Section('Weergave', [
             SwitchListTile(
               title: const Text('Donker thema'),
@@ -89,6 +112,48 @@ class _SettingsBody extends ConsumerWidget {
               onChanged: (v) => update(settings.copyWith(keepScreenOn: v)),
             ),
           ]),
+
+          // ── Na timer ─────────────────────────────────────────────────────
+          _Section('Na timer', [
+            _DropdownTile<int?>(
+              label: 'Ga naar na aftellen',
+              value: settings.afterTimerPanel,
+              items: const [null, 1, 2],
+              itemLabel: (v) => switch (v) {
+                null => 'Blijf op huidig scherm',
+                1 => 'Paneel 1',
+                2 => 'Paneel 2',
+                _ => '',
+              },
+              onChanged: (v) => update(settings.copyWith(afterTimerPanel: v)),
+            ),
+          ]),
+
+          // ── Koersverandering ──────────────────────────────────────────────
+          _Section('Koersverandering (tack-indicator)', [
+            SwitchListTile(
+              title: const Text('Toon op paneel 1'),
+              value: settings.tackIndicatorPanel1,
+              onChanged: (v) =>
+                  update(settings.copyWith(tackIndicatorPanel1: v)),
+            ),
+            SwitchListTile(
+              title: const Text('Toon op paneel 2'),
+              value: settings.tackIndicatorPanel2,
+              onChanged: (v) =>
+                  update(settings.copyWith(tackIndicatorPanel2: v)),
+            ),
+            _DropdownTile<int>(
+              label: 'Graden per blokje',
+              value: settings.tackDegreesPerBlock,
+              items: const [1, 2, 3, 5, 10],
+              itemLabel: (v) => '$v°',
+              onChanged: (v) =>
+                  update(settings.copyWith(tackDegreesPerBlock: v)),
+            ),
+          ]),
+
+          // ── Datapanelen ───────────────────────────────────────────────────
           _Section('Datapanelen', [
             ListTile(
               title: const Text('Paneel 1 instellen'),
@@ -111,6 +176,8 @@ class _SettingsBody extends ConsumerWidget {
               ),
             ),
           ]),
+
+          // ── GPS Opname ────────────────────────────────────────────────────
           _Section('GPS Opname', [
             ListTile(
               title: const Text('Opgeslagen tracks'),
@@ -216,7 +283,13 @@ class _DropdownTile<T> extends StatelessWidget {
         items: items
             .map((i) => DropdownMenuItem(value: i, child: Text(itemLabel(i))))
             .toList(),
-        onChanged: (v) => v != null ? onChanged(v) : null,
+        onChanged: (v) {
+          if (v != null) {
+            onChanged(v);
+          } else {
+            onChanged(v as T);
+          }
+        },
       ),
     );
   }
