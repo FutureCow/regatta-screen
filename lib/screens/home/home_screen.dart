@@ -10,6 +10,7 @@ import '../timer/timer_screen.dart';
 import '../startline/startline_screen.dart';
 import '../data_panel/data_panel_screen.dart';
 import '../settings/settings_screen.dart';
+import '../../logic/timer_notifier.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -61,6 +62,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     ref.listen(settingsProvider, (_, next) {
       WakelockPlus.toggle(enable: next.valueOrNull?.keepScreenOn ?? true);
+    });
+
+    // Auto-navigate to configured panel when countdown reaches zero
+    ref.listen(timerNotifierProvider, (prev, next) {
+      if (prev == null) return;
+      final wasCountingDown = prev.remaining > Duration.zero;
+      final nowElapsed = next.remaining == Duration.zero;
+      if (wasCountingDown && nowElapsed) {
+        final target =
+            ref.read(settingsProvider).valueOrNull?.afterTimerPanel;
+        if (target == 1) {
+          _pageController.animateToPage(
+            2,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
+          );
+        } else if (target == 2) {
+          _pageController.animateToPage(
+            3,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
+          );
+        }
+      }
     });
 
     final recorder = ref.watch(trackRecorderProvider);
