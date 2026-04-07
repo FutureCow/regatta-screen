@@ -7,9 +7,9 @@ import '../../models/app_settings.dart';
 import '../../models/lat_lng.dart';
 import '../../models/start_line.dart';
 import '../../providers/gps_provider.dart';
-import '../../providers/compass_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/start_line_provider.dart';
+import '../../providers/smoothing_provider.dart';
 import '../../logic/timer_notifier.dart';
 import '../../logic/startline_calculator.dart';
 import '../../widgets/large_value_display.dart';
@@ -39,11 +39,13 @@ class DataFieldWidget extends ConsumerWidget {
 
     switch (field) {
       case DataField.speedGps:
-        if (gps == null) return ('--', _speedUnit(settings));
+        // Use smoothed speed (m/s), convert to configured unit
+        final smoothedMs = ref.watch(smoothedSpeedProvider).valueOrNull;
+        if (smoothedMs == null) return ('--', _speedUnit(settings));
         final speed = switch (settings?.speedUnit ?? SpeedUnit.knots) {
-          SpeedUnit.knots => gps.speedKnots,
-          SpeedUnit.kmh => gps.speedKmh,
-          SpeedUnit.ms => gps.speedMs,
+          SpeedUnit.knots => smoothedMs * 1.94384,
+          SpeedUnit.kmh => smoothedMs * 3.6,
+          SpeedUnit.ms => smoothedMs,
         };
         return (speed.toStringAsFixed(1), _speedUnit(settings));
 
@@ -52,9 +54,10 @@ class DataFieldWidget extends ConsumerWidget {
         return (gps!.headingDeg!.toStringAsFixed(0), '°');
 
       case DataField.headingMagnetic:
-        final heading = ref.watch(compassStreamProvider).valueOrNull;
-        if (heading == null) return ('--', '°');
-        return (heading.toStringAsFixed(0), '°');
+        // Use smoothed heading
+        final smoothedHeading = ref.watch(smoothedHeadingProvider).valueOrNull;
+        if (smoothedHeading == null) return ('--', '°');
+        return (smoothedHeading.toStringAsFixed(0), '°');
 
       case DataField.raceTime:
         final elapsed = timerState.raceElapsed;
