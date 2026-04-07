@@ -31,7 +31,12 @@ class StartlineScreen extends ConsumerWidget {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        MediaQuery.of(context).padding.top + 52,
+        16,
+        16,
+      ),
       child: Column(
         children: [
           Row(
