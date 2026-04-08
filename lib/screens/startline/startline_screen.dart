@@ -33,7 +33,7 @@ class StartlineScreen extends ConsumerWidget {
 
     return Column(
       children: [
-        _MiniTimer(ref: ref),
+        const _MiniTimer(),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -355,9 +355,8 @@ class _LinePainter extends CustomPainter {
   bool shouldRepaint(_LinePainter old) => true;
 }
 
-class _MiniTimer extends StatelessWidget {
-  final WidgetRef ref;
-  const _MiniTimer({required this.ref});
+class _MiniTimer extends ConsumerWidget {
+  const _MiniTimer({super.key});
 
   String _format(Duration d) {
     final abs = d.isNegative ? -d : d;
@@ -367,7 +366,7 @@ class _MiniTimer extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(timerNotifierProvider);
     final theme = Theme.of(context);
     final display = state.isCountingDown
