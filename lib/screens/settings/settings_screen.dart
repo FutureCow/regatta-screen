@@ -55,16 +55,6 @@ class _SettingsBody extends ConsumerWidget {
               },
               onChanged: (u) => update(settings.copyWith(distanceUnit: u)),
             ),
-            _DropdownTile<HeadingMode>(
-              label: 'Koers',
-              value: settings.headingMode,
-              items: HeadingMode.values,
-              itemLabel: (u) => switch (u) {
-                HeadingMode.magnetic => 'Magnetisch',
-                HeadingMode.trueNorth => 'Ware koers',
-              },
-              onChanged: (u) => update(settings.copyWith(headingMode: u)),
-            ),
           ]),
 
           // ── Smoothing ────────────────────────────────────────────────────
@@ -275,21 +265,37 @@ class _DropdownTile<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return ListTile(
       title: Text(label),
-      trailing: DropdownButton<T>(
-        value: value,
-        underline: const SizedBox.shrink(),
-        items: items
-            .map((i) => DropdownMenuItem(value: i, child: Text(itemLabel(i))))
-            .toList(),
-        onChanged: (v) {
-          if (v != null) {
-            onChanged(v);
-          } else {
-            onChanged(v as T);
-          }
-        },
+      trailing: SizedBox(
+        width: 160,
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: DropdownButton<T>(
+            value: value,
+            underline: const SizedBox.shrink(),
+            alignment: AlignmentDirectional.centerEnd,
+            items: items
+                .map((i) => DropdownMenuItem(
+                      value: i,
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: Text(
+                        itemLabel(i),
+                        style: theme.textTheme.bodyMedium,
+                        textAlign: TextAlign.right,
+                      ),
+                    ))
+                .toList(),
+            onChanged: (v) {
+              if (v != null) {
+                onChanged(v);
+              } else {
+                onChanged(v as T);
+              }
+            },
+          ),
+        ),
       ),
     );
   }
