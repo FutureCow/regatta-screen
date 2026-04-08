@@ -94,6 +94,10 @@ class DataFieldWidget extends ConsumerWidget {
       case DataField.longitude:
         if (gps == null) return ('--', null);
         return (gps.longitude.toStringAsFixed(4), '°');
+
+      case DataField.windDirection:
+        if (settings?.windDirectionDeg == null) return ('--', '°');
+        return (settings!.windDirectionDeg!.toStringAsFixed(0), '°');
     }
   }
 

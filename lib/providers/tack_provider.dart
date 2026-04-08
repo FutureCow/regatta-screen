@@ -13,6 +13,10 @@ class TackNotifier extends Notifier<TackState> {
   final _buffer = <HeadingEntry>[];
   DateTime? _tackDetectedAt;
 
+  /// Candidates from the first tack before wind direction is known.
+  /// Tuple of (candidate, candidateFlip) — two options 180° apart.
+  (double, double)? _pendingCandidates;
+
   @override
   TackState build() {
     ref.listen(smoothedHeadingProvider, (_, next) {
@@ -78,23 +82,47 @@ class TackNotifier extends Notifier<TackState> {
   }
 
   /// Estimates wind direction from two close-hauled headings (before and after tack).
-  /// Only updates if wind direction is already set; picks the candidate closest to it.
+  ///
+  /// First tack: stores two candidates (180° apart) in [_pendingCandidates].
+  /// Second tack: resolves ambiguity by picking the pending candidate closest
+  ///   to the new tack's candidates.
+  /// Subsequent tacks: refines existing wind direction by picking the closest candidate.
   void _estimateWindDirection(double h1, double h2) {
     final settings = ref.read(settingsProvider).valueOrNull;
-    if (settings?.windDirectionDeg == null) return;
+    if (settings == null) return;
 
-    final existing = settings!.windDirectionDeg!;
     final candidate = circularMean([h1, h2]);
     final candidateFlip = (candidate + 180) % 360;
 
-    // Pick the candidate closest to the existing wind direction.
-    // When equidistant (diffA == diffB), prefer candidate over its flip.
-    final diffA = angularDiff(existing, candidate).abs();
-    final diffB = angularDiff(existing, candidateFlip).abs();
-    final newWind = diffA <= diffB ? candidate : candidateFlip;
-
-    ref
-        .read(settingsProvider.notifier)
-        .save(settings.copyWith(windDirectionDeg: newWind));
+    if (settings.windDirectionDeg != null) {
+      // Refine existing wind: pick candidate closest to current value.
+      // When equidistant (diffA == diffB), prefer candidate over its flip.
+      final existing = settings.windDirectionDeg!;
+      final diffA = angularDiff(existing, candidate).abs();
+      final diffB = angularDiff(existing, candidateFlip).abs();
+      final newWind = diffA <= diffB ? candidate : candidateFlip;
+      ref
+          .read(settingsProvider.notifier)
+          .save(settings.copyWith(windDirectionDeg: newWind));
+    } else if (_pendingCandidates == null) {
+      // First tack: store both candidates, don't save yet — need second tack to disambiguate.
+      _pendingCandidates = (candidate, candidateFlip);
+    } else {
+      // Second tack: pick the pending candidate (c1 or c2) that is closest to
+      // either of the new tack's candidates, resolving the 180° ambiguity.
+      final (c1, c2) = _pendingCandidates!;
+      final pairs = [
+        (angularDiff(c1, candidate).abs(), c1),
+        (angularDiff(c1, candidateFlip).abs(), c1),
+        (angularDiff(c2, candidate).abs(), c2),
+        (angularDiff(c2, candidateFlip).abs(), c2),
+      ];
+      pairs.sort((a, b) => a.$1.compareTo(b.$1));
+      final bestWind = pairs.first.$2;
+      _pendingCandidates = null;
+      ref
+          .read(settingsProvider.notifier)
+          .save(settings.copyWith(windDirectionDeg: bestWind));
+    }
   }
 }

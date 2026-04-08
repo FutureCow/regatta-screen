@@ -10,6 +10,7 @@ enum DataField {
   vmgToLine,
   latitude,
   longitude,
+  windDirection,
 }
 
 extension DataFieldInfo on DataField {
@@ -24,11 +25,15 @@ extension DataFieldInfo on DataField {
         DataField.vmgToLine => 'VMG',
         DataField.latitude => 'Breedtegraad',
         DataField.longitude => 'Lengtegraad',
+        DataField.windDirection => 'Wind',
       };
 
   String get defaultUnit => switch (this) {
         DataField.speedGps => 'kts',
-        DataField.headingGps || DataField.headingMagnetic => '°',
+        DataField.headingGps ||
+        DataField.headingMagnetic ||
+        DataField.windDirection =>
+          '°',
         DataField.distanceToLine || DataField.vmgToLine => 'm',
         _ => '',
       };
