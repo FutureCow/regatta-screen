@@ -356,7 +356,7 @@ class _LinePainter extends CustomPainter {
 }
 
 class _MiniTimer extends ConsumerWidget {
-  const _MiniTimer({super.key});
+  const _MiniTimer();
 
   String _format(Duration d) {
     final abs = d.isNegative ? -d : d;
