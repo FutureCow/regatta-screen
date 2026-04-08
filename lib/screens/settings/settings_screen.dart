@@ -287,13 +287,7 @@ class _DropdownTile<T> extends StatelessWidget {
                       ),
                     ))
                 .toList(),
-            onChanged: (v) {
-              if (v != null) {
-                onChanged(v);
-              } else {
-                onChanged(v as T);
-              }
-            },
+            onChanged: (v) => onChanged(v as T),
           ),
         ),
       ),
