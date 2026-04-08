@@ -87,7 +87,8 @@ class TackNotifier extends Notifier<TackState> {
     final candidate = circularMean([h1, h2]);
     final candidateFlip = (candidate + 180) % 360;
 
-    // Pick the candidate closest to the existing wind direction
+    // Pick the candidate closest to the existing wind direction.
+    // When equidistant (diffA == diffB), prefer candidate over its flip.
     final diffA = angularDiff(existing, candidate).abs();
     final diffB = angularDiff(existing, candidateFlip).abs();
     final newWind = diffA <= diffB ? candidate : candidateFlip;
