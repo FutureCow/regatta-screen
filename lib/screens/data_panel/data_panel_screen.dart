@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/data_field.dart';
 import '../../models/panel_config.dart';
 import '../../providers/settings_provider.dart';
-import '../../widgets/tack_indicator.dart';
 import 'data_field_widget.dart';
 
 class DataPanelScreen extends ConsumerWidget {
@@ -18,33 +17,22 @@ class DataPanelScreen extends ConsumerWidget {
     final config = panelIndex == 1
         ? (settings?.panel1 ?? PanelConfig.defaults1())
         : (settings?.panel2 ?? PanelConfig.defaults2());
-    final showTack = panelIndex == 1
-        ? (settings?.tackIndicatorPanel1 ?? false)
-        : (settings?.tackIndicatorPanel2 ?? false);
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        8,
-        MediaQuery.of(context).padding.top + 48,
-        8,
-        showTack ? 52 : 24,
-      ),
-      child: Stack(
-        children: [
-          _buildLayout(context, ref, config),
-          if (showTack)
-            const Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: TackIndicator(),
-            ),
-        ],
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 40),
+      child: OrientationBuilder(
+        builder: (context, orientation) =>
+            _buildLayout(context, ref, config, orientation),
       ),
     );
   }
 
-  Widget _buildLayout(BuildContext context, WidgetRef ref, PanelConfig config) {
+  Widget _buildLayout(
+    BuildContext context,
+    WidgetRef ref,
+    PanelConfig config,
+    Orientation orientation,
+  ) {
     switch (config.fieldCount) {
       case 1:
         return _FieldCell(
@@ -52,8 +40,27 @@ class DataPanelScreen extends ConsumerWidget {
           panelIndex: panelIndex,
           fieldSlot: 0,
           config: config,
+          fontHeightFraction: 0.45,
         );
+
       case 2:
+        // In landscape: side by side for maximum text size
+        if (orientation == Orientation.landscape) {
+          return Row(
+            children: List.generate(
+              2,
+              (i) => Expanded(
+                child: _FieldCell(
+                  field: config.fields[i],
+                  panelIndex: panelIndex,
+                  fieldSlot: i,
+                  config: config,
+                  fontHeightFraction: 0.40,
+                ),
+              ),
+            ),
+          );
+        }
         return Column(
           children: List.generate(
             2,
@@ -63,10 +70,12 @@ class DataPanelScreen extends ConsumerWidget {
                 panelIndex: panelIndex,
                 fieldSlot: i,
                 config: config,
+                fontHeightFraction: 0.40,
               ),
             ),
           ),
         );
+
       case 3:
         return Column(
           children: List.generate(
@@ -77,10 +86,12 @@ class DataPanelScreen extends ConsumerWidget {
                 panelIndex: panelIndex,
                 fieldSlot: i,
                 config: config,
+                fontHeightFraction: 0.35,
               ),
             ),
           ),
         );
+
       case 4:
         return Column(
           children: [
@@ -93,6 +104,7 @@ class DataPanelScreen extends ConsumerWidget {
                       panelIndex: panelIndex,
                       fieldSlot: 0,
                       config: config,
+                      fontHeightFraction: 0.30,
                     ),
                   ),
                   Expanded(
@@ -101,6 +113,7 @@ class DataPanelScreen extends ConsumerWidget {
                       panelIndex: panelIndex,
                       fieldSlot: 1,
                       config: config,
+                      fontHeightFraction: 0.30,
                     ),
                   ),
                 ],
@@ -115,6 +128,7 @@ class DataPanelScreen extends ConsumerWidget {
                       panelIndex: panelIndex,
                       fieldSlot: 2,
                       config: config,
+                      fontHeightFraction: 0.30,
                     ),
                   ),
                   Expanded(
@@ -123,6 +137,7 @@ class DataPanelScreen extends ConsumerWidget {
                       panelIndex: panelIndex,
                       fieldSlot: 3,
                       config: config,
+                      fontHeightFraction: 0.30,
                     ),
                   ),
                 ],
@@ -130,6 +145,7 @@ class DataPanelScreen extends ConsumerWidget {
             ),
           ],
         );
+
       default:
         return const SizedBox.shrink();
     }
@@ -141,12 +157,14 @@ class _FieldCell extends ConsumerWidget {
   final int panelIndex;
   final int fieldSlot;
   final PanelConfig config;
+  final double fontHeightFraction;
 
   const _FieldCell({
     required this.field,
     required this.panelIndex,
     required this.fieldSlot,
     required this.config,
+    required this.fontHeightFraction,
   });
 
   @override
@@ -163,7 +181,8 @@ class _FieldCell extends ConsumerWidget {
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final fontSize = (constraints.maxHeight * 0.42).clamp(24.0, 160.0);
+            final fontSize =
+                (constraints.maxHeight * fontHeightFraction).clamp(20.0, 160.0);
             return DataFieldWidget(field: field, fontSize: fontSize);
           },
         ),
