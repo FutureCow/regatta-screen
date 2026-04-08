@@ -43,7 +43,7 @@ class SettingsService {
   AppSettings _fromJson(Map<String, dynamic> j) => AppSettings(
         speedUnit: SpeedUnit.values.byName(j['speedUnit'] as String),
         distanceUnit: DistanceUnit.values.byName(j['distanceUnit'] as String),
-        headingMode: HeadingMode.values.byName(j['headingMode'] as String),
+        headingMode: HeadingMode.values.byName((j['headingMode'] as String?) ?? 'magnetic'),
         darkMode: j['darkMode'] as bool,
         keepScreenOn: j['keepScreenOn'] as bool,
         windDirectionDeg: (j['windDirectionDeg'] as num?)?.toDouble(),
