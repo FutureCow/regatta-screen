@@ -93,6 +93,7 @@ class DataPanelScreen extends ConsumerWidget {
         );
 
       case 4:
+        final fraction4 = orientation == Orientation.landscape ? 0.38 : 0.30;
         return Column(
           children: [
             Expanded(
@@ -104,7 +105,7 @@ class DataPanelScreen extends ConsumerWidget {
                       panelIndex: panelIndex,
                       fieldSlot: 0,
                       config: config,
-                      fontHeightFraction: 0.30,
+                      fontHeightFraction: fraction4,
                     ),
                   ),
                   Expanded(
@@ -113,7 +114,7 @@ class DataPanelScreen extends ConsumerWidget {
                       panelIndex: panelIndex,
                       fieldSlot: 1,
                       config: config,
-                      fontHeightFraction: 0.30,
+                      fontHeightFraction: fraction4,
                     ),
                   ),
                 ],
@@ -128,7 +129,7 @@ class DataPanelScreen extends ConsumerWidget {
                       panelIndex: panelIndex,
                       fieldSlot: 2,
                       config: config,
-                      fontHeightFraction: 0.30,
+                      fontHeightFraction: fraction4,
                     ),
                   ),
                   Expanded(
@@ -137,7 +138,7 @@ class DataPanelScreen extends ConsumerWidget {
                       panelIndex: panelIndex,
                       fieldSlot: 3,
                       config: config,
-                      fontHeightFraction: 0.30,
+                      fontHeightFraction: fraction4,
                     ),
                   ),
                 ],

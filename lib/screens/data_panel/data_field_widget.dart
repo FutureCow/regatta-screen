@@ -23,11 +23,15 @@ class DataFieldWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final (value, unit) = _resolveValue(ref);
+    final unitOnTop = field == DataField.headingGps ||
+        field == DataField.headingMagnetic ||
+        field == DataField.windDirection;
     return LargeValueDisplay(
       value: value,
       unit: unit,
       label: field.label,
       fontSize: fontSize,
+      unitOnTop: unitOnTop,
     );
   }
 
