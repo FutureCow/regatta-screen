@@ -24,15 +24,15 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
     final recorder = ref.watch(trackRecorderProvider);
 
     ref.listen(timerNotifierProvider, (prev, next) {
-      if (next.isRunning && !recorder.isRecording) {
-        if (next.remaining <= const Duration(minutes: 5)) {
-          recorder.start();
-          _gpsSub?.cancel();
-          _gpsSub = ref
-              .read(gpsServiceProvider)
-              .positionStream
-              .listen((p) => recorder.addPoint(p));
-        }
+      if (next.isRunning &&
+          !recorder.isRecording &&
+          next.remaining <= const Duration(minutes: 5)) {
+        recorder.start();
+        _gpsSub?.cancel();
+        _gpsSub = ref
+            .read(gpsServiceProvider)
+            .positionStream
+            .listen((p) => recorder.addPoint(p));
       }
     });
 
@@ -121,32 +121,34 @@ class _LandscapeLayout extends StatelessWidget {
           Expanded(
             flex: 2,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _DurationSelector(
                   selected: state.duration,
                   onSelect: notifier.setDuration,
                   enabled: state.status == TimerStatus.idle,
                 ),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _RoundButton(
-                        label: '−1m',
-                        onTap: notifier.roundDown,
-                        compact: true,
+                const SizedBox(height: 8),
+                // Large square round-buttons filling available height
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _RoundButton(
+                          label: '−1m',
+                          onTap: notifier.roundDown,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _RoundButton(
-                        label: '+1m',
-                        onTap: notifier.roundUp,
-                        compact: true,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _RoundButton(
+                          label: '+1m',
+                          onTap: notifier.roundUp,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     Expanded(
@@ -287,8 +289,7 @@ class _TimerDisplay extends StatelessWidget {
 class _RoundButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
-  final bool compact;
-  const _RoundButton({required this.label, required this.onTap, this.compact = false});
+  const _RoundButton({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -296,7 +297,7 @@ class _RoundButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: compact ? 10 : 18),
+        height: double.infinity,
         decoration: BoxDecoration(
           color: theme.cardColor,
           borderRadius: BorderRadius.circular(16),
@@ -306,7 +307,7 @@ class _RoundButton extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              fontSize: compact ? 20 : 28,
+              fontSize: 28,
               fontWeight: FontWeight.w800,
               color: theme.textTheme.bodyLarge?.color,
             ),

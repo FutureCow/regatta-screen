@@ -8,6 +8,7 @@ final timerNotifierProvider =
 
 class TimerNotifier extends Notifier<TimerState> {
   Timer? _ticker;
+  DateTime? _lastRoundUpAt;
 
   @override
   TimerState build() => TimerState.initial();
@@ -47,10 +48,22 @@ class TimerNotifier extends Notifier<TimerState> {
   }
 
   void roundUp() {
+    final now = DateTime.now();
     final secs = state.remaining.inSeconds;
-    if (secs % 60 == 0) return;
-    final rounded = ((secs ~/ 60) + 1) * 60;
-    state = state.copyWith(remaining: Duration(seconds: rounded));
+    if (_lastRoundUpAt != null &&
+        now.difference(_lastRoundUpAt!) < const Duration(seconds: 2)) {
+      // Subsequent tap within 2s: add 1 minute on top
+      state = state.copyWith(
+        remaining: state.remaining + const Duration(minutes: 1),
+      );
+    } else {
+      // First tap: round up to next minute boundary
+      if (secs % 60 != 0) {
+        final rounded = ((secs ~/ 60) + 1) * 60;
+        state = state.copyWith(remaining: Duration(seconds: rounded));
+      }
+    }
+    _lastRoundUpAt = now;
   }
 
   /// For testing only
@@ -60,12 +73,10 @@ class TimerNotifier extends Notifier<TimerState> {
 
   void _tick() {
     if (state.remaining > Duration.zero) {
-      // Counting down
       state = state.copyWith(
         remaining: state.remaining - const Duration(seconds: 1),
       );
     } else if (state.isRunning) {
-      // Counting up (race in progress) — increment raceElapsedSeconds to force rebuild
       state = state.copyWith(
         raceElapsedSeconds: state.raceElapsedSeconds + 1,
       );
