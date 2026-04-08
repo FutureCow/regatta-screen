@@ -1,5 +1,4 @@
 // lib/screens/timer/timer_screen.dart
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../logic/timer_notifier.dart';
@@ -15,8 +14,6 @@ class TimerScreen extends ConsumerStatefulWidget {
 }
 
 class _TimerScreenState extends ConsumerState<TimerScreen> {
-  StreamSubscription? _gpsSub;
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(timerNotifierProvider);
@@ -27,12 +24,7 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
       if (next.isRunning &&
           !recorder.isRecording &&
           next.remaining <= const Duration(minutes: 5)) {
-        recorder.start();
-        _gpsSub?.cancel();
-        _gpsSub = ref
-            .read(gpsServiceProvider)
-            .positionStream
-            .listen((p) => recorder.addPoint(p));
+        recorder.start(ref.read(gpsServiceProvider).positionStream);
       }
     });
 
@@ -44,12 +36,6 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
         return _PortraitLayout(state: state, notifier: notifier);
       },
     );
-  }
-
-  @override
-  void dispose() {
-    _gpsSub?.cancel();
-    super.dispose();
   }
 }
 
