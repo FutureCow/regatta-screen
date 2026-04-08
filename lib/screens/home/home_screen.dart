@@ -1,4 +1,5 @@
 // lib/screens/home/home_screen.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,11 +7,12 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/gps_provider.dart';
 import '../../providers/track_recorder_provider.dart';
+import '../../logic/timer_notifier.dart';
+import '../../widgets/tack_indicator.dart';
 import '../timer/timer_screen.dart';
 import '../startline/startline_screen.dart';
 import '../data_panel/data_panel_screen.dart';
 import '../settings/settings_screen.dart';
-import '../../logic/timer_notifier.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -22,10 +24,13 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _pageController = PageController();
   int _currentPage = 0;
+  bool _showIndicators = true;
+  Timer? _indicatorTimer;
 
   @override
   void initState() {
     super.initState();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.landscapeLeft,
@@ -33,6 +38,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ]);
     _applyWakelock();
     _requestGpsPermission();
+    _resetIndicatorTimer();
   }
 
   void _applyWakelock() {
@@ -52,8 +58,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  void _resetIndicatorTimer() {
+    _indicatorTimer?.cancel();
+    if (!_showIndicators) setState(() => _showIndicators = true);
+    _indicatorTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _showIndicators = false);
+    });
+  }
+
   @override
   void dispose() {
+    _indicatorTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
@@ -64,7 +79,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       WakelockPlus.toggle(enable: next.valueOrNull?.keepScreenOn ?? true);
     });
 
-    // Auto-navigate to configured panel when countdown reaches zero
     ref.listen(timerNotifierProvider, (prev, next) {
       if (prev == null) return;
       final wasCountingDown = prev.remaining > Duration.zero;
@@ -89,13 +103,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
 
     final recorder = ref.watch(trackRecorderProvider);
+    final settings = ref.watch(settingsProvider).valueOrNull;
+
+    final showTack = (_currentPage == 2 && (settings?.tackIndicatorPanel1 ?? false)) ||
+        (_currentPage == 3 && (settings?.tackIndicatorPanel2 ?? false));
 
     return Scaffold(
       body: Stack(
         children: [
           PageView(
             controller: _pageController,
-            onPageChanged: (i) => setState(() => _currentPage = i),
+            onPageChanged: (i) {
+              setState(() => _currentPage = i);
+              _resetIndicatorTimer();
+            },
             children: const [
               TimerScreen(),
               StartlineScreen(),
@@ -103,16 +124,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               DataPanelScreen(panelIndex: 2),
             ],
           ),
-          // Page indicators
+
+          if (_showIndicators)
+            Positioned(
+              bottom: 16,
+              left: 0,
+              right: 0,
+              child: _PageIndicators(current: _currentPage, total: 4),
+            ),
+
+          if (!_showIndicators && showTack)
+            const Positioned(
+              bottom: 12,
+              left: 16,
+              right: 16,
+              child: TackIndicator(),
+            ),
+
           Positioned(
-            bottom: 16,
-            left: 0,
-            right: 0,
-            child: _PageIndicators(current: _currentPage, total: 4),
-          ),
-          // Top-right overlay
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
+            top: 8,
             right: 12,
             child: Row(
               children: [
@@ -120,21 +150,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   GestureDetector(
                     onTap: () async => await recorder.stop(),
                     child: Container(
-                      width: 12,
-                      height: 12,
-                      margin: const EdgeInsets.only(right: 8),
+                      width: 32,
+                      height: 32,
+                      margin: const EdgeInsets.only(right: 6),
                       decoration: const BoxDecoration(
                         color: Color(0xFFEF4444),
                         shape: BoxShape.circle,
                       ),
+                      child: const Icon(
+                        Icons.stop,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                     ),
                   ),
-                IconButton(
-                  icon: const Icon(Icons.settings_outlined, size: 24),
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                if (_currentPage == 0)
+                  IconButton(
+                    icon: const Icon(Icons.settings_outlined, size: 24),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const SettingsScreen()),
+                    ),
                   ),
-                ),
               ],
             ),
           ),
