@@ -60,7 +60,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   void _resetIndicatorTimer() {
     _indicatorTimer?.cancel();
-    if (!_showIndicators) setState(() => _showIndicators = true);
+    if (!_showIndicators && mounted) setState(() => _showIndicators = true);
     _indicatorTimer = Timer(const Duration(seconds: 2), () {
       if (mounted) setState(() => _showIndicators = false);
     });
@@ -148,19 +148,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               children: [
                 if (recorder.isRecording)
                   GestureDetector(
-                    onTap: () async => await recorder.stop(),
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      margin: const EdgeInsets.only(right: 6),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFEF4444),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.stop,
-                        color: Colors.white,
-                        size: 18,
+                    behavior: HitTestBehavior.opaque,
+                    onTap: recorder.stop,
+                    child: SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: Center(
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFEF4444),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.stop,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
                       ),
                     ),
                   ),
