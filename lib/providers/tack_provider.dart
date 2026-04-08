@@ -2,10 +2,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/tack_state.dart';
 import '../logic/tack_detector.dart';
+import '../logic/smoothing.dart';
 import '../providers/smoothing_provider.dart';
 import '../providers/settings_provider.dart';
 
-final tackStateProvider = NotifierProvider<TackNotifier, TackState>(TackNotifier.new);
+final tackStateProvider =
+    NotifierProvider<TackNotifier, TackState>(TackNotifier.new);
 
 class TackNotifier extends Notifier<TackState> {
   final _buffer = <HeadingEntry>[];
@@ -34,7 +36,7 @@ class TackNotifier extends Notifier<TackState> {
       final settled = recentHeadingChange(_buffer, 2) < 5.0;
 
       if (settled || timeSinceTack >= const Duration(seconds: 10)) {
-        // Settle: record current heading as the new baseline
+        final prevBaseline = state.baseline;
         _tackDetectedAt = null;
         state = state.copyWith(
           baseline: heading,
@@ -42,8 +44,12 @@ class TackNotifier extends Notifier<TackState> {
           blocksRight: 0,
           isSettling: false,
         );
+        // Estimate wind direction from the two headings
+        if (prevBaseline != null) {
+          _estimateWindDirection(prevBaseline, heading);
+        }
       }
-      return; // don't do anything else during settling
+      return;
     }
 
     // --- Tack detection ---
@@ -69,5 +75,25 @@ class TackNotifier extends Notifier<TackState> {
       degreesPerBlock: degreesPerBlock,
     );
     state = state.copyWith(blocksLeft: left, blocksRight: right);
+  }
+
+  /// Estimates wind direction from two close-hauled headings (before and after tack).
+  /// Only updates if wind direction is already set; picks the candidate closest to it.
+  void _estimateWindDirection(double h1, double h2) {
+    final settings = ref.read(settingsProvider).valueOrNull;
+    if (settings?.windDirectionDeg == null) return;
+
+    final existing = settings!.windDirectionDeg!;
+    final candidate = circularMean([h1, h2]);
+    final candidateFlip = (candidate + 180) % 360;
+
+    // Pick the candidate closest to the existing wind direction
+    final diffA = angularDiff(existing, candidate).abs();
+    final diffB = angularDiff(existing, candidateFlip).abs();
+    final newWind = diffA <= diffB ? candidate : candidateFlip;
+
+    ref
+        .read(settingsProvider.notifier)
+        .save(settings.copyWith(windDirectionDeg: newWind));
   }
 }
