@@ -31,82 +31,186 @@ class StartlineScreen extends ConsumerWidget {
       }
     }
 
-    return Column(
-      children: [
-        const _MiniTimer(),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _WaypointCard(
-                        label: 'Pin',
-                        color: AppColors.accentGreen,
-                        position: lineState.pin,
-                        currentPos: currentPos,
-                        onRecord: currentPos != null
-                            ? () => lineNotifier.setPin(currentPos)
-                            : null,
-                        onClear:
-                            lineState.pin != null ? lineNotifier.clearPin : null,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _WaypointCard(
-                        label: 'Startboot',
-                        color: AppColors.accentBlue,
-                        position: lineState.boat,
-                        currentPos: currentPos,
-                        onRecord: currentPos != null
-                            ? () => lineNotifier.setBoat(currentPos)
-                            : null,
-                        onClear: lineState.boat != null
-                            ? lineNotifier.clearBoat
-                            : null,
-                      ),
-                    ),
-                  ],
+    final content = SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _WaypointCard(
+                  label: 'Pin',
+                  color: AppColors.accentGreen,
+                  position: lineState.pin,
+                  currentPos: currentPos,
+                  onRecord: currentPos != null
+                      ? () => lineNotifier.setPin(currentPos)
+                      : null,
+                  onClear:
+                      lineState.pin != null ? lineNotifier.clearPin : null,
                 ),
-                const SizedBox(height: 16),
-                if (line != null) ...[
-                  _LineInfoCard(
-                    length: haversineDistance(line.pin, line.boat),
-                    bearing: bearingBetween(line.pin, line.boat),
-                    distanceM: distanceM,
-                    bias: bias,
-                  ),
-                  const SizedBox(height: 16),
-                  if (currentPos != null)
-                    _LineVisual(
-                        pin: line.pin, boat: line.boat, pos: currentPos),
-                ],
-                if (!lineState.isComplete)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 24),
-                    child: Text(
-                      'Vaar naar de pin en startboot\nom de lijn vast te leggen',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.color
-                                ?.withValues(alpha: 0.5),
-                          ),
-                    ),
-                  ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _WaypointCard(
+                  label: 'Startboot',
+                  color: AppColors.accentBlue,
+                  position: lineState.boat,
+                  currentPos: currentPos,
+                  onRecord: currentPos != null
+                      ? () => lineNotifier.setBoat(currentPos)
+                      : null,
+                  onClear: lineState.boat != null
+                      ? lineNotifier.clearBoat
+                      : null,
+                ),
+              ),
+            ],
           ),
-        ),
+          const SizedBox(height: 16),
+          if (line != null) ...[
+            _LineInfoCard(
+              length: haversineDistance(line.pin, line.boat),
+              bearing: bearingBetween(line.pin, line.boat),
+              distanceM: distanceM,
+              bias: bias,
+            ),
+            const SizedBox(height: 16),
+            if (currentPos != null)
+              _LineVisual(pin: line.pin, boat: line.boat, pos: currentPos),
+          ],
+          if (!lineState.isComplete)
+            Padding(
+              padding: const EdgeInsets.only(top: 24),
+              child: Text(
+                'Vaar naar de pin en startboot\nom de lijn vast te leggen',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.color
+                          ?.withValues(alpha: 0.5),
+                    ),
+              ),
+            ),
+        ],
+      ),
+    );
+
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+
+    if (isLandscape) {
+      return Column(
+        children: [
+          const _MiniTimerTop(),
+          Expanded(child: content),
+        ],
+      );
+    }
+
+    // Portrait: timer strip on the right, content to the left
+    return Row(
+      children: [
+        Expanded(child: content),
+        const _MiniTimerSide(),
       ],
     );
   }
 }
+
+// ─── Mini timer — horizontal strip (landscape) ───────────────────────────────
+
+class _MiniTimerTop extends ConsumerWidget {
+  const _MiniTimerTop();
+
+  String _format(Duration d) {
+    final abs = d.isNegative ? -d : d;
+    final m = abs.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = abs.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '${d.isNegative ? '-' : ''}$m:$s';
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(timerNotifierProvider);
+    final theme = Theme.of(context);
+    final display = state.isCountingDown
+        ? _format(state.remaining)
+        : '+${_format(state.raceElapsed)}';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      color: theme.cardColor,
+      child: Column(
+        children: [
+          Text(
+            state.isCountingDown ? 'AFTELLEN' : 'RACE',
+            style: theme.textTheme.labelSmall,
+          ),
+          Text(
+            display,
+            style: theme.textTheme.headlineLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+              height: 1.1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Mini timer — vertical strip on right (portrait) ─────────────────────────
+
+class _MiniTimerSide extends ConsumerWidget {
+  const _MiniTimerSide();
+
+  String _format(Duration d) {
+    final abs = d.isNegative ? -d : d;
+    final m = abs.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = abs.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '${d.isNegative ? '-' : ''}$m:$s';
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(timerNotifierProvider);
+    final theme = Theme.of(context);
+    final display = state.isCountingDown
+        ? _format(state.remaining)
+        : '+${_format(state.raceElapsed)}';
+
+    return Container(
+      width: 64,
+      color: theme.cardColor,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            state.isCountingDown ? 'AFTELLEN' : 'RACE',
+            style: theme.textTheme.labelSmall,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            display,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              height: 1.1,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Waypoint card ───────────────────────────────────────────────────────────
 
 class _WaypointCard extends StatelessWidget {
   final String label;
@@ -193,6 +297,8 @@ class _WaypointCard extends StatelessWidget {
   }
 }
 
+// ─── Line info card ──────────────────────────────────────────────────────────
+
 class _LineInfoCard extends StatelessWidget {
   final double length;
   final double bearing;
@@ -267,6 +373,8 @@ class _LineInfoCard extends StatelessWidget {
   }
 }
 
+// ─── Line visual ─────────────────────────────────────────────────────────────
+
 class _LineVisual extends StatelessWidget {
   final LatLng pin;
   final LatLng boat;
@@ -320,9 +428,12 @@ class _LinePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final minLng = [pin.lng, boat.lng, position.lng].reduce((a, b) => a < b ? a : b);
-    final maxLng = [pin.lng, boat.lng, position.lng].reduce((a, b) => a > b ? a : b);
-    final lngRange = (maxLng - minLng).abs() < 0.0001 ? 0.001 : (maxLng - minLng);
+    final minLng =
+        [pin.lng, boat.lng, position.lng].reduce((a, b) => a < b ? a : b);
+    final maxLng =
+        [pin.lng, boat.lng, position.lng].reduce((a, b) => a > b ? a : b);
+    final lngRange =
+        (maxLng - minLng).abs() < 0.0001 ? 0.001 : (maxLng - minLng);
 
     double lngToX(double lng) =>
         0.1 * size.width + ((lng - minLng) / lngRange) * 0.8 * size.width;
@@ -344,7 +455,9 @@ class _LinePainter extends CustomPainter {
     canvas.drawCircle(Offset(boatX, midY), 6, Paint()..color = boatColor);
     canvas.drawCircle(Offset(posX, midY * 0.4), 7,
         Paint()..color = posColor..style = PaintingStyle.fill);
-    canvas.drawCircle(Offset(posX, midY * 0.4), 7,
+    canvas.drawCircle(
+        Offset(posX, midY * 0.4),
+        7,
         Paint()
           ..color = posColor.withValues(alpha: 0.5)
           ..style = PaintingStyle.stroke
@@ -353,45 +466,4 @@ class _LinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_LinePainter old) => true;
-}
-
-class _MiniTimer extends ConsumerWidget {
-  const _MiniTimer();
-
-  String _format(Duration d) {
-    final abs = d.isNegative ? -d : d;
-    final m = abs.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = abs.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '${d.isNegative ? '-' : ''}$m:$s';
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(timerNotifierProvider);
-    final theme = Theme.of(context);
-    final display = state.isCountingDown
-        ? _format(state.remaining)
-        : '+${_format(state.raceElapsed)}';
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      color: theme.cardColor,
-      child: Column(
-        children: [
-          Text(
-            state.isCountingDown ? 'AFTELLEN' : 'RACE',
-            style: theme.textTheme.labelSmall,
-          ),
-          Text(
-            display,
-            style: theme.textTheme.headlineLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-              height: 1.1,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
