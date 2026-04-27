@@ -81,6 +81,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     ref.listen(timerNotifierProvider, (prev, next) {
       if (prev == null) return;
+
+      // Navigate to data panel at gun signal
       final wasCountingDown = prev.remaining > Duration.zero;
       final nowElapsed = next.remaining == Duration.zero;
       if (wasCountingDown && nowElapsed) {
@@ -99,6 +101,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             curve: Curves.easeInOut,
           );
         }
+      }
+
+      // Start GPS recording when 5 minutes or fewer remain on a running timer
+      final recorder = ref.read(trackRecorderProvider);
+      if (next.isRunning &&
+          !recorder.isRecording &&
+          next.remaining <= const Duration(minutes: 5)) {
+        recorder.start(ref.read(gpsServiceProvider).positionStream);
+      }
+
+      // Stop GPS recording when the timer is stopped or reset
+      if (prev.isRunning && !next.isRunning && recorder.isRecording) {
+        recorder.stop();
       }
     });
 

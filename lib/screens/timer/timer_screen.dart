@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../logic/timer_notifier.dart';
 import '../../models/timer_state.dart';
-import '../../providers/track_recorder_provider.dart';
-import '../../providers/gps_provider.dart';
 
 class TimerScreen extends ConsumerStatefulWidget {
   const TimerScreen({super.key});
@@ -18,15 +16,6 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(timerNotifierProvider);
     final notifier = ref.read(timerNotifierProvider.notifier);
-    final recorder = ref.watch(trackRecorderProvider);
-
-    ref.listen(timerNotifierProvider, (prev, next) {
-      if (next.isRunning &&
-          !recorder.isRecording &&
-          next.remaining <= const Duration(minutes: 5)) {
-        recorder.start(ref.read(gpsServiceProvider).positionStream);
-      }
-    });
 
     return OrientationBuilder(
       builder: (context, orientation) {

@@ -13,6 +13,9 @@ class TackNotifier extends Notifier<TackState> {
   final _buffer = <HeadingEntry>[];
   DateTime? _tackDetectedAt;
 
+  /// Headings collected during seconds 3–10 after a tack, used to compute the new baseline.
+  final _settlingBuffer = <double>[];
+
   /// Candidates from the first tack before wind direction is known.
   /// Tuple of (candidate, candidateFlip) — two options 180° apart.
   (double, double)? _pendingCandidates;
@@ -37,21 +40,33 @@ class TackNotifier extends Notifier<TackState> {
     // --- Settling phase ---
     if (_tackDetectedAt != null) {
       final timeSinceTack = now.difference(_tackDetectedAt!);
-      final settled = recentHeadingChange(_buffer, 2) < 5.0;
 
-      if (settled || timeSinceTack >= const Duration(seconds: 10)) {
-        final prevBaseline = state.baseline;
-        _tackDetectedAt = null;
-        state = state.copyWith(
-          baseline: heading,
-          blocksLeft: 0,
-          blocksRight: 0,
-          isSettling: false,
-        );
-        // Estimate wind direction from the two headings
-        if (prevBaseline != null) {
-          _estimateWindDirection(prevBaseline, heading);
-        }
+      if (timeSinceTack < const Duration(seconds: 3)) {
+        // Wait period: ignore headings, boat is still turning.
+        return;
+      }
+
+      if (timeSinceTack < const Duration(seconds: 10)) {
+        // Averaging window (seconds 3–10): collect headings.
+        _settlingBuffer.add(heading);
+        return;
+      }
+
+      // After 10 seconds: use circular mean of collected headings as new baseline.
+      final newBaseline = _settlingBuffer.isNotEmpty
+          ? circularMean(_settlingBuffer)
+          : heading;
+      final prevBaseline = state.baseline;
+      _tackDetectedAt = null;
+      _settlingBuffer.clear();
+      state = state.copyWith(
+        baseline: newBaseline,
+        blocksLeft: 0,
+        blocksRight: 0,
+        isSettling: false,
+      );
+      if (prevBaseline != null) {
+        _estimateWindDirection(prevBaseline, newBaseline);
       }
       return;
     }
@@ -59,6 +74,7 @@ class TackNotifier extends Notifier<TackState> {
     // --- Tack detection ---
     if (isTackInBuffer(_buffer)) {
       _tackDetectedAt = now;
+      _settlingBuffer.clear();
       _buffer.clear();
       _buffer.add((value: heading, time: now));
       state = state.copyWith(

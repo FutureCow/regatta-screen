@@ -5,7 +5,7 @@ import 'package:share_plus/share_plus.dart';
 
 class GpxExporter {
   Future<List<File>> listTracks() async {
-    final dir = await getApplicationDocumentsDirectory();
+    final dir = await getApplicationSupportDirectory();
     return dir
         .listSync()
         .whereType<File>()

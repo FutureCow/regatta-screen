@@ -93,7 +93,7 @@ class DataPanelScreen extends ConsumerWidget {
         );
 
       case 4:
-        final fraction4 = orientation == Orientation.landscape ? 0.38 : 0.30;
+        final fraction4 = orientation == Orientation.landscape ? 0.60 : 0.30;
         return Column(
           children: [
             Expanded(
