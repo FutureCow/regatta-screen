@@ -146,6 +146,10 @@ class _LandscapeLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Local copies so Dart can promote nullable types inside closures/conditionals
+    final pos = currentPos;
+    final l = line;
+
     return Column(
       children: [
         const _MiniTimerTop(),
@@ -165,10 +169,10 @@ class _LandscapeLayout extends StatelessWidget {
                         label: 'Pin',
                         color: AppColors.accentGreen,
                         position: lineState.pin,
-                        currentPos: currentPos,
+                        currentPos: pos,
                         compact: true,
-                        onRecord: currentPos != null
-                            ? () => lineNotifier.setPin(currentPos)
+                        onRecord: pos != null
+                            ? () => lineNotifier.setPin(pos)
                             : null,
                         onClear: lineState.pin != null
                             ? lineNotifier.clearPin
@@ -179,10 +183,10 @@ class _LandscapeLayout extends StatelessWidget {
                         label: 'Startboot',
                         color: AppColors.accentBlue,
                         position: lineState.boat,
-                        currentPos: currentPos,
+                        currentPos: pos,
                         compact: true,
-                        onRecord: currentPos != null
-                            ? () => lineNotifier.setBoat(currentPos)
+                        onRecord: pos != null
+                            ? () => lineNotifier.setBoat(pos)
                             : null,
                         onClear: lineState.boat != null
                             ? lineNotifier.clearBoat
@@ -207,26 +211,26 @@ class _LandscapeLayout extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 // Right: info card + line visual side by side
-                if (line != null)
+                if (l != null)
                   Expanded(
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Expanded(
                           child: _LineInfoCard(
-                            length: haversineDistance(line.pin, line.boat),
-                            bearing: bearingBetween(line.pin, line.boat),
+                            length: haversineDistance(l.pin, l.boat),
+                            bearing: bearingBetween(l.pin, l.boat),
                             distanceM: distanceM,
                             bias: bias,
                           ),
                         ),
-                        if (currentPos != null) ...[
+                        if (pos != null) ...[
                           const SizedBox(width: 12),
                           Expanded(
                             child: _LineVisual(
-                              pin: line.pin,
-                              boat: line.boat,
-                              pos: currentPos!,
+                              pin: l.pin,
+                              boat: l.boat,
+                              pos: pos,
                               expand: true,
                             ),
                           ),
