@@ -37,7 +37,7 @@ class ApiService {
     return data;
   }
 
-  /// Returns all server tracks for this user as raw maps (includes id + filename).
+  /// Returns all server tracks for this user as raw maps (includes id, filename, original_filename).
   Future<List<Map<String, dynamic>>> listServerTracks(String token) async {
     final res = await http.get(
       Uri.parse('$baseUrl/tracks'),
@@ -163,6 +163,9 @@ class ApiService {
     }
 
     final streamed = await request.send();
+    if (streamed.statusCode == 409) {
+      throw 'already_on_server';
+    }
     if (streamed.statusCode != 201) {
       final body = await streamed.stream.bytesToString();
       final data = jsonDecode(body) as Map<String, dynamic>;

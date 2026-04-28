@@ -42,7 +42,10 @@ class _GpxTracksScreenState extends ConsumerState<GpxTracksScreen> {
         setState(() {
           _serverTracks.clear();
           for (final t in tracks) {
-            _serverTracks[t['filename'] as String] = t['id'] as int?;
+            final key = (t['original_filename'] as String?)?.isNotEmpty == true
+                ? t['original_filename'] as String
+                : t['filename'] as String;
+            _serverTracks[key] = t['id'] as int?;
           }
           _serverChecked = true;
         });
@@ -69,7 +72,10 @@ class _GpxTracksScreenState extends ConsumerState<GpxTracksScreen> {
         setState(() {
           _uploading.remove(filename);
           for (final t in updated) {
-            _serverTracks[t['filename'] as String] = t['id'] as int?;
+            final key = (t['original_filename'] as String?)?.isNotEmpty == true
+                ? t['original_filename'] as String
+                : t['filename'] as String;
+            _serverTracks[key] = t['id'] as int?;
           }
         });
         ScaffoldMessenger.of(context)
@@ -78,8 +84,14 @@ class _GpxTracksScreenState extends ConsumerState<GpxTracksScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _uploading.remove(filename));
+        final msg = e.toString() == 'already_on_server'
+            ? 'Track staat al op de server'
+            : 'Upload mislukt: $e';
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Upload mislukt: $e')));
+            .showSnackBar(SnackBar(content: Text(msg)));
+        if (e.toString() == 'already_on_server') {
+          _loadServerTracks();
+        }
       }
     }
   }
