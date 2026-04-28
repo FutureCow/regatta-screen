@@ -40,6 +40,8 @@ class SettingsService {
         'tackDegreesPerBlock': s.tackDegreesPerBlock,
         'authToken': s.authToken,
         'authEmail': s.authEmail,
+        'activeRaceCode': s.activeRaceCode,
+        'activeRaceLabel': s.activeRaceLabel,
       };
 
   AppSettings _fromJson(Map<String, dynamic> j) => AppSettings(
@@ -59,5 +61,7 @@ class SettingsService {
         tackDegreesPerBlock: (j['tackDegreesPerBlock'] as int?) ?? 3,
         authToken: j['authToken'] as String?,
         authEmail: j['authEmail'] as String?,
+        activeRaceCode: j['activeRaceCode'] as String?,
+        activeRaceLabel: j['activeRaceLabel'] as String?,
       );
 }

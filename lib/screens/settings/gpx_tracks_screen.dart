@@ -68,6 +68,8 @@ class _GpxTracksScreenState extends ConsumerState<GpxTracksScreen> {
           );
       final updated =
           await ref.read(apiServiceProvider).listServerTracks(auth.token!);
+
+      int? newTrackId;
       if (mounted) {
         setState(() {
           _uploading.remove(filename);
@@ -76,8 +78,30 @@ class _GpxTracksScreenState extends ConsumerState<GpxTracksScreen> {
                 ? t['original_filename'] as String
                 : t['filename'] as String;
             _serverTracks[key] = t['id'] as int?;
+            if (key == filename) newTrackId = t['id'] as int?;
           }
         });
+      }
+
+      // Auto-join active race if set
+      final code = settings?.activeRaceCode;
+      if (code != null && newTrackId != null && mounted) {
+        try {
+          await ref.read(apiServiceProvider).joinWithCode(auth.token!, code, newTrackId!);
+          if (mounted) {
+            final label = settings?.activeRaceLabel ?? code;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Track geüpload en gekoppeld aan $label')),
+            );
+          }
+        } catch (_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Track geüpload (koppelen aan wedstrijd mislukt)')),
+            );
+          }
+        }
+      } else if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('Track geüpload')));
       }
@@ -120,9 +144,35 @@ class _GpxTracksScreenState extends ConsumerState<GpxTracksScreen> {
     final auth = ref.watch(authProvider);
     final loggedIn = auth.token != null;
 
+    final settings = ref.watch(settingsProvider).valueOrNull;
+    final activeCode = settings?.activeRaceCode;
+    final activeLabel = settings?.activeRaceLabel;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Opgeslagen tracks')),
-      body: tracksAsync.when(
+      body: Column(
+        children: [
+          if (loggedIn)
+            _RaceCodeBanner(
+              code: activeCode,
+              label: activeLabel,
+              onSet: (code, label) {
+                if (settings == null) return;
+                ref.read(settingsProvider.notifier).save(
+                      settings.copyWith(activeRaceCode: code, activeRaceLabel: label),
+                    );
+              },
+              onClear: () {
+                if (settings == null) return;
+                ref.read(settingsProvider.notifier).save(
+                      settings.copyWith(activeRaceCode: null, activeRaceLabel: null),
+                    );
+              },
+              token: auth.token ?? '',
+              apiService: ref.read(apiServiceProvider),
+            ),
+          Expanded(
+            child: tracksAsync.when(
         data: (tracks) => tracks.isEmpty
             ? const Center(child: Text('Geen tracks opgeslagen'))
             : ListView.builder(
@@ -186,12 +236,270 @@ class _GpxTracksScreenState extends ConsumerState<GpxTracksScreen> {
               ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Fout: $e')),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Actieve wedstrijdcode banner ──────────────────────────────────────────────
+
+class _RaceCodeBanner extends StatelessWidget {
+  final String? code;
+  final String? label;
+  final void Function(String code, String label) onSet;
+  final VoidCallback onClear;
+  final String token;
+  final ApiService apiService;
+
+  const _RaceCodeBanner({
+    required this.code,
+    required this.label,
+    required this.onSet,
+    required this.onClear,
+    required this.token,
+    required this.apiService,
+  });
+
+  Future<void> _openSheet(BuildContext context) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => _SetRaceCodeSheet(
+        token: token,
+        apiService: apiService,
+        onConfirm: onSet,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasCode = code != null;
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(12, 10, 12, 2),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: hasCode
+            ? theme.colorScheme.primaryContainer
+            : theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            hasCode ? Icons.flag : Icons.flag_outlined,
+            size: 20,
+            color: hasCode
+                ? theme.colorScheme.onPrimaryContainer
+                : theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: hasCode
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label ?? code!,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                      Text(
+                        'Code: $code · nieuwe tracks worden automatisch gekoppeld',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onPrimaryContainer.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  )
+                : Text(
+                    'Geen actieve wedstrijd — tik om code in te stellen',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+          ),
+          if (hasCode)
+            IconButton(
+              icon: const Icon(Icons.close, size: 18),
+              tooltip: 'Code wissen',
+              onPressed: onClear,
+              color: theme.colorScheme.onPrimaryContainer,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            )
+          else
+            TextButton(
+              onPressed: () => _openSheet(context),
+              child: const Text('Instellen'),
+            ),
+          if (hasCode) ...[
+            const SizedBox(width: 4),
+            TextButton(
+              onPressed: () => _openSheet(context),
+              child: Text(
+                'Wijzigen',
+                style: TextStyle(color: theme.colorScheme.onPrimaryContainer),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
 }
 
 // ── Code invoer bottom sheet ──────────────────────────────────────────────────
+
+class _SetRaceCodeSheet extends StatefulWidget {
+  final String token;
+  final ApiService apiService;
+  final void Function(String code, String label) onConfirm;
+
+  const _SetRaceCodeSheet({
+    required this.token,
+    required this.apiService,
+    required this.onConfirm,
+  });
+
+  @override
+  State<_SetRaceCodeSheet> createState() => _SetRaceCodeSheetState();
+}
+
+class _SetRaceCodeSheetState extends State<_SetRaceCodeSheet> {
+  final _controller = TextEditingController();
+  Map<String, dynamic>? _preview;
+  String? _error;
+  bool _looking = false;
+
+  Future<void> _lookup() async {
+    final code = _controller.text.toUpperCase().trim();
+    if (code.length < 6) return;
+    setState(() { _looking = true; _error = null; _preview = null; });
+    try {
+      final info = await widget.apiService.lookupCode(widget.token, code);
+      if (mounted) setState(() { _preview = info; _looking = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _looking = false; });
+    }
+  }
+
+  void _confirm() {
+    final code = _controller.text.toUpperCase().trim();
+    final raceName = _preview!['race_name'] as String;
+    final className = _preview!['class_name'] as String;
+    final label = '$raceName · $className';
+    widget.onConfirm(code, label);
+    Navigator.pop(context);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final insets = MediaQuery.of(context).viewInsets;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + insets.bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Wedstrijdcode instellen', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(
+            'Nieuwe tracks worden automatisch aan deze wedstrijd gekoppeld.',
+            style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _controller,
+            textCapitalization: TextCapitalization.characters,
+            maxLength: 6,
+            style: theme.textTheme.headlineSmall
+                ?.copyWith(fontWeight: FontWeight.w700, letterSpacing: 4),
+            decoration: InputDecoration(
+              hintText: 'bijv. AB3K7M',
+              counterText: '',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              suffixIcon: _looking
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                          width: 20, height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2)))
+                  : IconButton(
+                      icon: const Icon(Icons.search),
+                      onPressed: _lookup),
+            ),
+            onChanged: (_) => setState(() { _preview = null; _error = null; }),
+            onSubmitted: (_) => _lookup(),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 10),
+            Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+          ],
+          if (_preview != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: theme.cardColor,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: theme.dividerColor),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_preview!['series_name'] != null)
+                    Text(_preview!['series_name'] as String,
+                        style: theme.textTheme.labelSmall),
+                  Text(_preview!['race_name'] as String,
+                      style: theme.textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    const Icon(Icons.flag, size: 14),
+                    const SizedBox(width: 6),
+                    Text(_preview!['class_name'] as String,
+                        style: theme.textTheme.bodyMedium),
+                  ]),
+                  if (_preview!['race_date'] != null) ...[
+                    const SizedBox(height: 2),
+                    Row(children: [
+                      const Icon(Icons.calendar_today, size: 14),
+                      const SizedBox(width: 6),
+                      Text(_preview!['race_date'] as String,
+                          style: theme.textTheme.bodySmall),
+                    ]),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            ElevatedButton(
+              onPressed: _confirm,
+              child: const Text('Instellen'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
 
 class _CodeJoinSheet extends StatefulWidget {
   final String token;

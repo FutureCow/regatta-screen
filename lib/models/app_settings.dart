@@ -27,6 +27,9 @@ class AppSettings {
   // Auth credentials (stored locally after login)
   final String? authToken;
   final String? authEmail;
+  // Active race code — new tracks are automatically linked to this race/class
+  final String? activeRaceCode;
+  final String? activeRaceLabel;
 
   const AppSettings({
     this.speedUnit = SpeedUnit.knots,
@@ -45,6 +48,8 @@ class AppSettings {
     this.tackDegreesPerBlock = 3,
     this.authToken,
     this.authEmail,
+    this.activeRaceCode,
+    this.activeRaceLabel,
   });
 
   factory AppSettings.defaults() => AppSettings(
@@ -72,6 +77,8 @@ class AppSettings {
     int? tackDegreesPerBlock,
     Object? authToken = _unset,
     Object? authEmail = _unset,
+    Object? activeRaceCode = _unset,
+    Object? activeRaceLabel = _unset,
   }) =>
       AppSettings(
         speedUnit: speedUnit ?? this.speedUnit,
@@ -94,5 +101,7 @@ class AppSettings {
         tackDegreesPerBlock: tackDegreesPerBlock ?? this.tackDegreesPerBlock,
         authToken: authToken == _unset ? this.authToken : authToken as String?,
         authEmail: authEmail == _unset ? this.authEmail : authEmail as String?,
+        activeRaceCode: activeRaceCode == _unset ? this.activeRaceCode : activeRaceCode as String?,
+        activeRaceLabel: activeRaceLabel == _unset ? this.activeRaceLabel : activeRaceLabel as String?,
       );
 }
