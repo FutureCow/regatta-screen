@@ -62,6 +62,7 @@ class DataPanelScreen extends ConsumerWidget {
           );
         }
         return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: List.generate(
             2,
             (i) => Expanded(
@@ -78,6 +79,7 @@ class DataPanelScreen extends ConsumerWidget {
 
       case 3:
         return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: List.generate(
             3,
             (i) => Expanded(

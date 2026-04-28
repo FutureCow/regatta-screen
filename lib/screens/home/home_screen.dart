@@ -7,6 +7,8 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/gps_provider.dart';
 import '../../providers/track_recorder_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/api_service.dart';
 import '../../logic/timer_notifier.dart';
 import '../../widgets/tack_indicator.dart';
 import '../timer/timer_screen.dart';
@@ -75,6 +77,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch auth state — used for auto-upload after recording stops.
+    // Auth is optional; the screen is fully functional when not logged in.
+    ref.watch(authProvider);
+
     ref.listen(settingsProvider, (_, next) {
       WakelockPlus.toggle(enable: next.valueOrNull?.keepScreenOn ?? true);
     });
@@ -113,7 +119,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       // Stop GPS recording when the timer is stopped or reset
       if (prev.isRunning && !next.isRunning && recorder.isRecording) {
-        recorder.stop();
+        recorder.stop().then((file) {
+          if (file == null) return;
+          final auth = ref.read(authProvider);
+          final settings = ref.read(settingsProvider).valueOrNull;
+          if (auth.token != null) {
+            ref.read(apiServiceProvider).uploadTrack(
+              file,
+              auth.token!,
+              windDirectionDeg: settings?.windDirectionDeg,
+            );
+          }
+        });
       }
     });
 
@@ -164,7 +181,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 if (recorder.isRecording)
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: recorder.stop,
+                    onTap: () async {
+                      ref.read(timerNotifierProvider.notifier).stop();
+                      final file = await recorder.stop();
+                      if (file == null) return;
+                      final auth = ref.read(authProvider);
+                      final settings = ref.read(settingsProvider).valueOrNull;
+                      if (auth.token != null) {
+                        ref.read(apiServiceProvider).uploadTrack(
+                          file,
+                          auth.token!,
+                          windDirectionDeg: settings?.windDirectionDeg,
+                        );
+                      }
+                    },
                     child: SizedBox(
                       width: 48,
                       height: 48,

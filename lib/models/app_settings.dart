@@ -24,6 +24,9 @@ class AppSettings {
   final bool tackIndicatorPanel2;
   // Degrees of heading change per tack indicator block (default 3)
   final int tackDegreesPerBlock;
+  // Auth credentials (stored locally after login)
+  final String? authToken;
+  final String? authEmail;
 
   const AppSettings({
     this.speedUnit = SpeedUnit.knots,
@@ -40,6 +43,8 @@ class AppSettings {
     this.tackIndicatorPanel1 = false,
     this.tackIndicatorPanel2 = false,
     this.tackDegreesPerBlock = 3,
+    this.authToken,
+    this.authEmail,
   });
 
   factory AppSettings.defaults() => AppSettings(
@@ -65,6 +70,8 @@ class AppSettings {
     bool? tackIndicatorPanel1,
     bool? tackIndicatorPanel2,
     int? tackDegreesPerBlock,
+    Object? authToken = _unset,
+    Object? authEmail = _unset,
   }) =>
       AppSettings(
         speedUnit: speedUnit ?? this.speedUnit,
@@ -85,5 +92,7 @@ class AppSettings {
         tackIndicatorPanel1: tackIndicatorPanel1 ?? this.tackIndicatorPanel1,
         tackIndicatorPanel2: tackIndicatorPanel2 ?? this.tackIndicatorPanel2,
         tackDegreesPerBlock: tackDegreesPerBlock ?? this.tackDegreesPerBlock,
+        authToken: authToken == _unset ? this.authToken : authToken as String?,
+        authEmail: authEmail == _unset ? this.authEmail : authEmail as String?,
       );
 }

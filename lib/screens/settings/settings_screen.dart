@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/app_settings.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../login/login_screen.dart';
 import 'panel_config_screen.dart';
 import 'gpx_tracks_screen.dart';
+import 'races_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -27,11 +30,40 @@ class _SettingsBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     void update(AppSettings s) => ref.read(settingsProvider.notifier).save(s);
+    final auth = ref.watch(authProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Instellingen')),
       body: ListView(
         children: [
+          // ── Account ───────────────────────────────────────────────────────
+          _Section('Account', [
+            if (auth.isLoggedIn) ...[
+              ListTile(
+                leading: const Icon(Icons.account_circle_outlined),
+                title: const Text('Ingelogd als'),
+                subtitle: Text(auth.email ?? ''),
+              ),
+              ListTile(
+                leading: const Icon(Icons.logout),
+                title: const Text('Uitloggen'),
+                onTap: () {
+                  ref.read(authProvider.notifier).logout();
+                },
+              ),
+            ] else
+              ListTile(
+                leading: const Icon(Icons.login),
+                title: const Text('Inloggen'),
+                subtitle: const Text('Log in om races automatisch te synchroniseren'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                ),
+              ),
+          ]),
+
           // ── Eenheden ──────────────────────────────────────────────────────
           _Section('Eenheden', [
             _DropdownTile<SpeedUnit>(
@@ -177,6 +209,17 @@ class _SettingsBody extends ConsumerWidget {
                 MaterialPageRoute(builder: (_) => const GpxTracksScreen()),
               ),
             ),
+            if (auth.isLoggedIn)
+              ListTile(
+                leading: const Icon(Icons.emoji_events_outlined),
+                title: const Text('Wedstrijden'),
+                subtitle: const Text('Bekijk en vergelijk tracks per wedstrijd'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RacesScreen()),
+                ),
+              ),
           ]),
         ],
       ),

@@ -146,7 +146,6 @@ class _LandscapeLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Local copies so Dart can promote nullable types inside closures/conditionals
     final pos = currentPos;
     final l = line;
 
@@ -156,61 +155,50 @@ class _LandscapeLayout extends StatelessWidget {
         Expanded(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Left: compact waypoint cards
-                SizedBox(
-                  width: 180,
-                  child: Column(
+                // Top row: Pin + Startboot naast elkaar
+                IntrinsicHeight(
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _WaypointCard(
-                        label: 'Pin',
-                        color: AppColors.accentGreen,
-                        position: lineState.pin,
-                        currentPos: pos,
-                        compact: true,
-                        onRecord: pos != null
-                            ? () => lineNotifier.setPin(pos)
-                            : null,
-                        onClear: lineState.pin != null
-                            ? lineNotifier.clearPin
-                            : null,
-                      ),
-                      const SizedBox(height: 8),
-                      _WaypointCard(
-                        label: 'Startboot',
-                        color: AppColors.accentBlue,
-                        position: lineState.boat,
-                        currentPos: pos,
-                        compact: true,
-                        onRecord: pos != null
-                            ? () => lineNotifier.setBoat(pos)
-                            : null,
-                        onClear: lineState.boat != null
-                            ? lineNotifier.clearBoat
-                            : null,
-                      ),
-                      if (!lineState.isComplete)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Text(
-                            'Vaar naar de pin en\nstartboot om de lijn\nvast te leggen',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(
-                                    color: Theme.of(context)
-                                        .hintColor
-                                        .withValues(alpha: 0.6)),
-                          ),
+                      Expanded(
+                        child: _WaypointCard(
+                          label: 'Pin',
+                          color: AppColors.accentGreen,
+                          position: lineState.pin,
+                          currentPos: pos,
+                          compact: true,
+                          onRecord: pos != null
+                              ? () => lineNotifier.setPin(pos)
+                              : null,
+                          onClear: lineState.pin != null
+                              ? lineNotifier.clearPin
+                              : null,
                         ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _WaypointCard(
+                          label: 'Startboot',
+                          color: AppColors.accentBlue,
+                          position: lineState.boat,
+                          currentPos: pos,
+                          compact: true,
+                          onRecord: pos != null
+                              ? () => lineNotifier.setBoat(pos)
+                              : null,
+                          onClear: lineState.boat != null
+                              ? lineNotifier.clearBoat
+                              : null,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                // Right: info card + line visual side by side
+                const SizedBox(height: 10),
+                // Bottom row: data blokken
                 if (l != null)
                   Expanded(
                     child: Row(
@@ -236,6 +224,20 @@ class _LandscapeLayout extends StatelessWidget {
                           ),
                         ],
                       ],
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        'Vaar naar de pin en startboot\nom de lijn vast te leggen',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .hintColor
+                                  .withValues(alpha: 0.6),
+                            ),
+                      ),
                     ),
                   ),
               ],

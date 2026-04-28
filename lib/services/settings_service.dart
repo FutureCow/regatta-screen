@@ -38,6 +38,8 @@ class SettingsService {
         'tackIndicatorPanel1': s.tackIndicatorPanel1,
         'tackIndicatorPanel2': s.tackIndicatorPanel2,
         'tackDegreesPerBlock': s.tackDegreesPerBlock,
+        'authToken': s.authToken,
+        'authEmail': s.authEmail,
       };
 
   AppSettings _fromJson(Map<String, dynamic> j) => AppSettings(
@@ -55,5 +57,7 @@ class SettingsService {
         tackIndicatorPanel1: (j['tackIndicatorPanel1'] as bool?) ?? false,
         tackIndicatorPanel2: (j['tackIndicatorPanel2'] as bool?) ?? false,
         tackDegreesPerBlock: (j['tackDegreesPerBlock'] as int?) ?? 3,
+        authToken: j['authToken'] as String?,
+        authEmail: j['authEmail'] as String?,
       );
 }
