@@ -110,11 +110,11 @@ class StartlineScreen extends ConsumerWidget {
       );
     }
 
-    // Portrait: timer strip on the right, content to the left
-    return Row(
+    // Portrait: timer strip at top, content below
+    return Column(
       children: [
+        const _MiniTimerTop(large: true),
         Expanded(child: content),
-        const _MiniTimerSide(),
       ],
     );
   }
@@ -123,7 +123,8 @@ class StartlineScreen extends ConsumerWidget {
 // ─── Mini timer — horizontal strip (landscape) ───────────────────────────────
 
 class _MiniTimerTop extends ConsumerWidget {
-  const _MiniTimerTop();
+  final bool large;
+  const _MiniTimerTop({this.large = false});
 
   String _format(Duration d) {
     final abs = d.isNegative ? -d : d;
@@ -139,10 +140,20 @@ class _MiniTimerTop extends ConsumerWidget {
     final display = state.isCountingDown
         ? _format(state.remaining)
         : '+${_format(state.raceElapsed)}';
+
+    final textStyle = large
+        ? theme.textTheme.displaySmall?.copyWith(
+            fontWeight: FontWeight.w800,
+            height: 1.1,
+          )
+        : theme.textTheme.headlineLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+            height: 1.1,
+          );
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(vertical: large ? 12 : 8),
       color: theme.cardColor,
       child: Column(
         children: [
@@ -150,60 +161,7 @@ class _MiniTimerTop extends ConsumerWidget {
             state.isCountingDown ? 'AFTELLEN' : 'RACE',
             style: theme.textTheme.labelSmall,
           ),
-          Text(
-            display,
-            style: theme.textTheme.headlineLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-              height: 1.1,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Mini timer — vertical strip on right (portrait) ─────────────────────────
-
-class _MiniTimerSide extends ConsumerWidget {
-  const _MiniTimerSide();
-
-  String _format(Duration d) {
-    final abs = d.isNegative ? -d : d;
-    final m = abs.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = abs.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '${d.isNegative ? '-' : ''}$m:$s';
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(timerNotifierProvider);
-    final theme = Theme.of(context);
-    final display = state.isCountingDown
-        ? _format(state.remaining)
-        : '+${_format(state.raceElapsed)}';
-
-    return Container(
-      width: 64,
-      color: theme.cardColor,
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            state.isCountingDown ? 'AFTELLEN' : 'RACE',
-            style: theme.textTheme.labelSmall,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            display,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              height: 1.1,
-            ),
-            textAlign: TextAlign.center,
-          ),
+          Text(display, style: textStyle),
         ],
       ),
     );

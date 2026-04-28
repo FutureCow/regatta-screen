@@ -64,7 +64,7 @@ class LargeValueDisplay extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Flexible(
+        Expanded(
           child: FittedBox(
             fit: BoxFit.scaleDown,
             child: valueRow,
