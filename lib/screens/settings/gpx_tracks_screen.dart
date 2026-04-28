@@ -90,24 +90,10 @@ class _GpxTracksScreenState extends ConsumerState<GpxTracksScreen> {
     final trackId = _serverTracks[filename];
     if (trackId == null) return;
 
-    List<Map<String, dynamic>> races = [];
-    try {
-      races = await ref.read(apiServiceProvider).listRaces(auth.token!);
-    } catch (_) {}
-
-    if (!mounted) return;
-
-    if (races.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Geen wedstrijden beschikbaar')),
-      );
-      return;
-    }
-
     await showModalBottomSheet(
       context: context,
-      builder: (ctx) => _RacePicker(
-        races: races,
+      isScrollControlled: true,
+      builder: (ctx) => _CodeJoinSheet(
         token: auth.token!,
         trackId: trackId,
         apiService: ref.read(apiServiceProvider),
@@ -193,32 +179,47 @@ class _GpxTracksScreenState extends ConsumerState<GpxTracksScreen> {
   }
 }
 
-// ── Race picker bottom sheet ──────────────────────────────────────────────────
+// ── Code invoer bottom sheet ──────────────────────────────────────────────────
 
-class _RacePicker extends StatefulWidget {
-  final List<Map<String, dynamic>> races;
+class _CodeJoinSheet extends StatefulWidget {
   final String token;
   final int trackId;
   final ApiService apiService;
 
-  const _RacePicker({
-    required this.races,
+  const _CodeJoinSheet({
     required this.token,
     required this.trackId,
     required this.apiService,
   });
 
   @override
-  State<_RacePicker> createState() => _RacePickerState();
+  State<_CodeJoinSheet> createState() => _CodeJoinSheetState();
 }
 
-class _RacePickerState extends State<_RacePicker> {
-  bool _loading = false;
+class _CodeJoinSheetState extends State<_CodeJoinSheet> {
+  final _controller = TextEditingController();
+  Map<String, dynamic>? _preview;
+  String? _error;
+  bool _looking = false;
+  bool _joining = false;
 
-  Future<void> _link(int raceId) async {
-    setState(() => _loading = true);
+  Future<void> _lookup() async {
+    final code = _controller.text.toUpperCase().trim();
+    if (code.length < 6) return;
+    setState(() { _looking = true; _error = null; _preview = null; });
     try {
-      await widget.apiService.linkTrackToRace(widget.token, raceId, widget.trackId);
+      final info = await widget.apiService.lookupCode(widget.token, code);
+      if (mounted) setState(() { _preview = info; _looking = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _looking = false; });
+    }
+  }
+
+  Future<void> _join() async {
+    final code = _controller.text.toUpperCase().trim();
+    setState(() { _joining = true; _error = null; });
+    try {
+      await widget.apiService.joinWithCode(widget.token, code, widget.trackId);
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -226,41 +227,109 @@ class _RacePickerState extends State<_RacePicker> {
         );
       }
     } catch (e) {
-      if (mounted) {
-        setState(() => _loading = false);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Fout: $e')));
-      }
+      if (mounted) setState(() { _error = e.toString(); _joining = false; });
     }
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text('Koppel aan wedstrijd',
-              style: Theme.of(context).textTheme.titleMedium),
-        ),
-        if (_loading)
-          const Padding(
-            padding: EdgeInsets.all(24),
-            child: CircularProgressIndicator(),
-          )
-        else
-          ...widget.races.map((r) => ListTile(
-                leading: const Icon(Icons.emoji_events_outlined),
-                title: Text(r['name'] as String),
-                subtitle: r['race_date'] != null
-                    ? Text(r['race_date'] as String)
-                    : null,
-                trailing: Text('${r['participant_count']} deelnemer(s)'),
-                onTap: () => _link(r['id'] as int),
-              )),
-        const SizedBox(height: 8),
-      ],
+    final theme = Theme.of(context);
+    final insets = MediaQuery.of(context).viewInsets;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + insets.bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Deelnamecode invoeren', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text('Vraag de code aan de wedstrijdleiding.',
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.hintColor)),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _controller,
+            textCapitalization: TextCapitalization.characters,
+            maxLength: 6,
+            style: theme.textTheme.headlineSmall
+                ?.copyWith(fontWeight: FontWeight.w700, letterSpacing: 4),
+            decoration: InputDecoration(
+              hintText: 'bijv. AB3K7M',
+              counterText: '',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              suffixIcon: _looking
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                          width: 20, height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2)))
+                  : IconButton(
+                      icon: const Icon(Icons.search),
+                      onPressed: _lookup),
+            ),
+            onChanged: (_) => setState(() { _preview = null; _error = null; }),
+            onSubmitted: (_) => _lookup(),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 10),
+            Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+          ],
+          if (_preview != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: theme.cardColor,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: theme.dividerColor),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_preview!['series_name'] != null)
+                    Text(_preview!['series_name'] as String,
+                        style: theme.textTheme.labelSmall),
+                  Text(_preview!['race_name'] as String,
+                      style: theme.textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    const Icon(Icons.flag, size: 14),
+                    const SizedBox(width: 6),
+                    Text(_preview!['class_name'] as String,
+                        style: theme.textTheme.bodyMedium),
+                  ]),
+                  if (_preview!['race_date'] != null) ...[
+                    const SizedBox(height: 2),
+                    Row(children: [
+                      const Icon(Icons.calendar_today, size: 14),
+                      const SizedBox(width: 6),
+                      Text(_preview!['race_date'] as String,
+                          style: theme.textTheme.bodySmall),
+                    ]),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            ElevatedButton(
+              onPressed: _joining ? null : _join,
+              child: _joining
+                  ? const SizedBox(
+                      width: 20, height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Text('Koppelen'),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

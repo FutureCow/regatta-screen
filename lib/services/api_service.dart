@@ -104,6 +104,37 @@ class ApiService {
     return List<Map<String, dynamic>>.from(jsonDecode(res.body) as List);
   }
 
+  // ── Klassen / deelnamecodes ────────────────────────────────────────────────
+
+  /// Zoek een deelnamecode op — geeft wedstrijd+klasse info terug.
+  Future<Map<String, dynamic>> lookupCode(String token, String code) async {
+    final res = await http.get(
+      Uri.parse('$baseUrl/join/${code.toUpperCase().trim()}'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    if (res.statusCode != 200) {
+      throw data['error'] as String? ?? 'Onbekende code.';
+    }
+    return data;
+  }
+
+  /// Koppel een track via deelnamecode.
+  Future<void> joinWithCode(String token, String code, int trackId) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl/join'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'code': code.toUpperCase().trim(), 'track_id': trackId}),
+    );
+    if (res.statusCode != 200 && res.statusCode != 201) {
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      throw data['error'] as String? ?? 'Koppelen mislukt.';
+    }
+  }
+
   /// Uploads a GPX file to the server.
   /// Optionally includes [windDirectionDeg] as a form field.
   /// Throws a [String] error message on failure.
