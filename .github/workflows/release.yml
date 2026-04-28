@@ -26,6 +26,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Generate launcher icons
+        run: dart run flutter_launcher_icons
+
       - name: Decode keystore
         run: echo "${{ secrets.RELEASE_KEYSTORE_B64 }}" | base64 --decode > android/app/release.keystore
 
