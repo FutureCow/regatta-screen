@@ -1,5 +1,6 @@
 // lib/screens/login/login_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
 import '../home/home_screen.dart';
@@ -57,6 +58,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
 
       if (mounted) {
+        TextInput.finishAutofillContext();
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
@@ -121,7 +123,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   // ── Form ────────────────────────────────────────────────
                   Form(
                     key: _formKey,
-                    child: Column(
+                    child: AutofillGroup(
+                     child: Column(
                       children: [
                         // Error message
                         if (_errorMessage != null) ...[
@@ -241,6 +244,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                       ],
+                     ),
                     ),
                   ),
 
