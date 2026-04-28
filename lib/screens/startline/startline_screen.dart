@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../logic/startline_calculator.dart';
 import '../../models/lat_lng.dart';
+import '../../models/start_line.dart';
 import '../../providers/gps_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/start_line_provider.dart';
@@ -31,96 +32,218 @@ class StartlineScreen extends ConsumerWidget {
       }
     }
 
-    final content = SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _WaypointCard(
-                  label: 'Pin',
-                  color: AppColors.accentGreen,
-                  position: lineState.pin,
-                  currentPos: currentPos,
-                  onRecord: currentPos != null
-                      ? () => lineNotifier.setPin(currentPos)
-                      : null,
-                  onClear:
-                      lineState.pin != null ? lineNotifier.clearPin : null,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _WaypointCard(
-                  label: 'Startboot',
-                  color: AppColors.accentBlue,
-                  position: lineState.boat,
-                  currentPos: currentPos,
-                  onRecord: currentPos != null
-                      ? () => lineNotifier.setBoat(currentPos)
-                      : null,
-                  onClear: lineState.boat != null
-                      ? lineNotifier.clearBoat
-                      : null,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (line != null) ...[
-            _LineInfoCard(
-              length: haversineDistance(line.pin, line.boat),
-              bearing: bearingBetween(line.pin, line.boat),
-              distanceM: distanceM,
-              bias: bias,
-            ),
-            const SizedBox(height: 16),
-            if (currentPos != null)
-              _LineVisual(pin: line.pin, boat: line.boat, pos: currentPos),
-          ],
-          if (!lineState.isComplete)
-            Padding(
-              padding: const EdgeInsets.only(top: 24),
-              child: Text(
-                'Vaar naar de pin en startboot\nom de lijn vast te leggen',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.color
-                          ?.withValues(alpha: 0.5),
-                    ),
-              ),
-            ),
-        ],
-      ),
-    );
-
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
 
     if (isLandscape) {
-      return Column(
-        children: [
-          const _MiniTimerTop(),
-          Expanded(child: content),
-        ],
+      return _LandscapeLayout(
+        lineState: lineState,
+        lineNotifier: lineNotifier,
+        currentPos: currentPos,
+        line: line,
+        distanceM: distanceM,
+        bias: bias,
       );
     }
 
-    // Portrait: timer strip at top, content below
+    // Portrait: scrollable column
     return Column(
       children: [
         const _MiniTimerTop(large: true),
-        Expanded(child: content),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _WaypointCard(
+                        label: 'Pin',
+                        color: AppColors.accentGreen,
+                        position: lineState.pin,
+                        currentPos: currentPos,
+                        onRecord: currentPos != null
+                            ? () => lineNotifier.setPin(currentPos)
+                            : null,
+                        onClear: lineState.pin != null
+                            ? lineNotifier.clearPin
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _WaypointCard(
+                        label: 'Startboot',
+                        color: AppColors.accentBlue,
+                        position: lineState.boat,
+                        currentPos: currentPos,
+                        onRecord: currentPos != null
+                            ? () => lineNotifier.setBoat(currentPos)
+                            : null,
+                        onClear: lineState.boat != null
+                            ? lineNotifier.clearBoat
+                            : null,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (line != null) ...[
+                  _LineInfoCard(
+                    length: haversineDistance(line.pin, line.boat),
+                    bearing: bearingBetween(line.pin, line.boat),
+                    distanceM: distanceM,
+                    bias: bias,
+                  ),
+                  const SizedBox(height: 16),
+                  if (currentPos != null)
+                    _LineVisual(
+                        pin: line.pin, boat: line.boat, pos: currentPos),
+                ],
+                if (!lineState.isComplete)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 24),
+                    child: Text(
+                      'Vaar naar de pin en startboot\nom de lijn vast te leggen',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.color
+                                ?.withValues(alpha: 0.5),
+                          ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
 }
 
-// ─── Mini timer — horizontal strip (landscape) ───────────────────────────────
+// ─── Landscape layout ─────────────────────────────────────────────────────────
+
+class _LandscapeLayout extends StatelessWidget {
+  final StartLineState lineState;
+  final StartLineNotifier lineNotifier;
+  final LatLng? currentPos;
+  final StartLine? line;
+  final double? distanceM;
+  final String? bias;
+
+  const _LandscapeLayout({
+    required this.lineState,
+    required this.lineNotifier,
+    required this.currentPos,
+    required this.line,
+    required this.distanceM,
+    required this.bias,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const _MiniTimerTop(),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Left: compact waypoint cards
+                SizedBox(
+                  width: 180,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _WaypointCard(
+                        label: 'Pin',
+                        color: AppColors.accentGreen,
+                        position: lineState.pin,
+                        currentPos: currentPos,
+                        compact: true,
+                        onRecord: currentPos != null
+                            ? () => lineNotifier.setPin(currentPos)
+                            : null,
+                        onClear: lineState.pin != null
+                            ? lineNotifier.clearPin
+                            : null,
+                      ),
+                      const SizedBox(height: 8),
+                      _WaypointCard(
+                        label: 'Startboot',
+                        color: AppColors.accentBlue,
+                        position: lineState.boat,
+                        currentPos: currentPos,
+                        compact: true,
+                        onRecord: currentPos != null
+                            ? () => lineNotifier.setBoat(currentPos)
+                            : null,
+                        onClear: lineState.boat != null
+                            ? lineNotifier.clearBoat
+                            : null,
+                      ),
+                      if (!lineState.isComplete)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text(
+                            'Vaar naar de pin en\nstartboot om de lijn\nvast te leggen',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                    color: Theme.of(context)
+                                        .hintColor
+                                        .withValues(alpha: 0.6)),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Right: info card + line visual side by side
+                if (line != null)
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: _LineInfoCard(
+                            length: haversineDistance(line.pin, line.boat),
+                            bearing: bearingBetween(line.pin, line.boat),
+                            distanceM: distanceM,
+                            bias: bias,
+                          ),
+                        ),
+                        if (currentPos != null) ...[
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _LineVisual(
+                              pin: line.pin,
+                              boat: line.boat,
+                              pos: currentPos!,
+                              expand: true,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Mini timer — horizontal strip ───────────────────────────────────────────
 
 class _MiniTimerTop extends ConsumerWidget {
   final bool large;
@@ -142,9 +265,9 @@ class _MiniTimerTop extends ConsumerWidget {
         : '+${_format(state.raceElapsed)}';
 
     final textStyle = large
-        ? theme.textTheme.displaySmall?.copyWith(
+        ? theme.textTheme.displayMedium?.copyWith(
             fontWeight: FontWeight.w800,
-            height: 1.1,
+            height: 1.0,
           )
         : theme.textTheme.headlineLarge?.copyWith(
             fontWeight: FontWeight.w800,
@@ -153,7 +276,9 @@ class _MiniTimerTop extends ConsumerWidget {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(vertical: large ? 12 : 8),
+      padding: large
+          ? const EdgeInsets.fromLTRB(0, 36, 0, 10)
+          : const EdgeInsets.symmetric(vertical: 8),
       color: theme.cardColor,
       child: Column(
         children: [
@@ -177,6 +302,7 @@ class _WaypointCard extends StatelessWidget {
   final LatLng? currentPos;
   final VoidCallback? onRecord;
   final VoidCallback? onClear;
+  final bool compact;
 
   const _WaypointCard({
     required this.label,
@@ -185,6 +311,7 @@ class _WaypointCard extends StatelessWidget {
     this.currentPos,
     this.onRecord,
     this.onClear,
+    this.compact = false,
   });
 
   @override
@@ -192,6 +319,53 @@ class _WaypointCard extends StatelessWidget {
     final theme = Theme.of(context);
     final recorded = position != null;
 
+    if (compact) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(12),
+          border:
+              Border.all(color: recorded ? color : theme.dividerColor, width: 2),
+        ),
+        child: Row(
+          children: [
+            Text(label, style: theme.textTheme.labelSmall),
+            const SizedBox(width: 8),
+            if (recorded)
+              Text(
+                '✓ Vastgelegd',
+                style: TextStyle(
+                    fontWeight: FontWeight.w600, color: color, fontSize: 12),
+              ),
+            const Spacer(),
+            GestureDetector(
+              onTap: recorded ? onClear : onRecord,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: recorded
+                      ? color.withValues(alpha: 0.15)
+                      : (onRecord != null ? color : theme.dividerColor),
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                child: Text(
+                  recorded ? 'Opnieuw' : 'Vastleggen',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: recorded ? color : Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Normal (portrait) card — no coordinates
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -209,11 +383,6 @@ class _WaypointCard extends StatelessWidget {
               '✓ Vastgelegd',
               style: TextStyle(
                   fontWeight: FontWeight.w600, color: color, fontSize: 13),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              position.toString(),
-              style: TextStyle(fontSize: 10, color: theme.hintColor),
             ),
             const SizedBox(height: 8),
             GestureDetector(
@@ -280,6 +449,7 @@ class _LineInfoCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _infoRow('Lijnlengte', '${length.toStringAsFixed(0)} m', theme),
           _infoRow('Lijnrichting', '${bearing.toStringAsFixed(0)}°', theme),
@@ -337,12 +507,26 @@ class _LineVisual extends StatelessWidget {
   final LatLng pin;
   final LatLng boat;
   final LatLng pos;
+  final bool expand;
 
-  const _LineVisual({required this.pin, required this.boat, required this.pos});
+  const _LineVisual({
+    required this.pin,
+    required this.boat,
+    required this.pos,
+    this.expand = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final painter = _LinePainter(
+      pin: pin,
+      boat: boat,
+      position: pos,
+      pinColor: AppColors.accentGreen,
+      boatColor: AppColors.accentBlue,
+      posColor: AppColors.accentAmber,
+    );
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -351,20 +535,17 @@ class _LineVisual extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text('Positie t.o.v. lijn', style: theme.textTheme.labelSmall),
           const SizedBox(height: 10),
-          CustomPaint(
-            size: const Size(double.infinity, 60),
-            painter: _LinePainter(
-              pin: pin,
-              boat: boat,
-              position: pos,
-              pinColor: AppColors.accentGreen,
-              boatColor: AppColors.accentBlue,
-              posColor: AppColors.accentAmber,
+          if (expand)
+            Expanded(child: CustomPaint(painter: painter))
+          else
+            CustomPaint(
+              size: const Size(double.infinity, 60),
+              painter: painter,
             ),
-          ),
         ],
       ),
     );
