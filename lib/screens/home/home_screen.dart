@@ -9,6 +9,7 @@ import '../../providers/gps_provider.dart';
 import '../../providers/track_recorder_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
+import '../../services/garmin_service.dart';
 import '../../logic/timer_notifier.dart';
 import '../../widgets/tack_indicator.dart';
 import '../timer/timer_screen.dart';
@@ -29,6 +30,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _showIndicators = true;
   Timer? _indicatorTimer;
 
+  final _garmin = GarminService();
+  StreamSubscription<GarminCommand>? _garminSub;
+
   @override
   void initState() {
     super.initState();
@@ -41,6 +45,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _applyWakelock();
     _requestGpsPermission();
     _resetIndicatorTimer();
+    _listenToGarmin();
+  }
+
+  void _listenToGarmin() {
+    _garminSub = _garmin.commands.listen((cmd) {
+      final timer = ref.read(timerNotifierProvider.notifier);
+      switch (cmd) {
+        case GarminCommand.startStop:
+          final state = ref.read(timerNotifierProvider);
+          if (state.isRunning) {
+            timer.stop();
+          } else {
+            timer.start();
+          }
+        case GarminCommand.plusOne:
+          timer.roundUp();
+        case GarminCommand.minusOne:
+          timer.roundDown();
+      }
+    });
   }
 
   void _applyWakelock() {
@@ -70,6 +94,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   void dispose() {
+    _garminSub?.cancel();
     _indicatorTimer?.cancel();
     _pageController.dispose();
     super.dispose();
@@ -87,6 +112,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     ref.listen(timerNotifierProvider, (prev, next) {
       if (prev == null) return;
+
+      // Stuur timer-status naar Garmin horloge (elke seconde)
+      _garmin.sendTimerState(
+        remainingSeconds: next.remaining.inSeconds,
+        running: next.isRunning,
+      );
 
       // Navigate to data panel at gun signal
       final wasCountingDown = prev.remaining > Duration.zero;
