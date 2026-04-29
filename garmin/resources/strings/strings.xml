@@ -1,0 +1,9 @@
+<strings>
+  <string id="AppName">Regatta Timer</string>
+  <string id="Running">Lopend</string>
+  <string id="Paused">Gestopt</string>
+  <string id="Connecting">Verbinden…</string>
+  <string id="HintUp">▲ +1</string>
+  <string id="HintDown">▼ -1</string>
+  <string id="HintEnter">START/STOP</string>
+</strings>

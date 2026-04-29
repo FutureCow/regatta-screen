@@ -1,4 +1,4 @@
-name: Release APK
+name: Release APK + Garmin
 
 on:
   push:
@@ -23,15 +23,56 @@ jobs:
         with:
           channel: stable
 
+      # ── Garmin Connect IQ SDK (monkeyc compiler) ───────────────────────────
+      - name: Download Connect IQ SDK
+        run: |
+          SDK_FILE=$(curl -s https://developer.garmin.com/downloads/connect-iq/sdks/sdks.json | \
+            python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          data.sort(key=lambda s: list(map(int, s['version'].split('.'))), reverse=True)
+          print(data[0]['linux'])
+          ")
+          SDK_URL="https://developer.garmin.com/downloads/connect-iq/sdks/${SDK_FILE}"
+          echo "Downloading Connect IQ SDK: ${SDK_FILE}"
+          curl -fL "$SDK_URL" -o connectiq-sdk.zip
+          unzip -q connectiq-sdk.zip -d connectiq-sdk
+          chmod +x connectiq-sdk/bin/monkeyc
+          echo "SDK version: $(connectiq-sdk/bin/monkeyc --version)"
+
+      # ── Garmin Android Mobile SDK (AAR voor Android build) ─────────────────
+      - name: Download Garmin Android SDK AAR
+        run: |
+          mkdir -p android/app/libs
+          curl -fL \
+            "https://raw.githubusercontent.com/garmin/connectiq-android-sdk/main/Comm%20Android/app/libs/monkeybrains-sdk-release.aar" \
+            -o android/app/libs/monkeybrains-sdk-release.aar
+          echo "AAR: $(ls -lh android/app/libs/*.aar)"
+
+      # ── Garmin watch app (.prg) ────────────────────────────────────────────
+      - name: Build Garmin watch app
+        run: |
+          echo "${{ secrets.GARMIN_DEVELOPER_KEY_B64 }}" | base64 --decode > developer_key.der
+          connectiq-sdk/bin/monkeyc \
+            -d fr965 \
+            -f garmin/monkey.jungle \
+            -o RegattaTimer.prg \
+            -y developer_key.der
+          echo "Garmin app: $(ls -lh RegattaTimer.prg)"
+
+      # ── Flutter dependencies ───────────────────────────────────────────────
       - name: Install dependencies
         run: flutter pub get
 
       - name: Generate launcher icons
         run: dart run flutter_launcher_icons
 
+      # ── Android keystore ───────────────────────────────────────────────────
       - name: Decode keystore
-        run: echo "${{ secrets.RELEASE_KEYSTORE_B64 }}" | base64 --decode > android/app/release.keystore
+        run: |
+          echo "${{ secrets.RELEASE_KEYSTORE_B64 }}" | base64 --decode > android/app/release.keystore
 
+      # ── Android APK ────────────────────────────────────────────────────────
       - name: Build release APK
         env:
           KEYSTORE_PATH: release.keystore
@@ -40,8 +81,11 @@ jobs:
           KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: flutter build apk --release
 
+      # ── GitHub release met beide bestanden ─────────────────────────────────
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ github.ref_name }}
-          files: build/app/outputs/flutter-apk/app-release.apk
+          files: |
+            build/app/outputs/flutter-apk/app-release.apk
+            RegattaTimer.prg

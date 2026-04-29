@@ -14,7 +14,7 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     companion object {
         const val METHOD_CHANNEL = "nl.regattascreen/garmin"
         const val EVENT_CHANNEL  = "nl.regattascreen/garmin_events"
-        // Moet overeenkomen met de UUID in manifest.xml van de watch app
+        // Moet overeenkomen met de UUID in garmin/manifest.xml
         const val WATCH_APP_ID   = "a3872ef8-5b7d-4c5e-9b1e-2f4d8a6c3e1f"
     }
 
@@ -22,13 +22,13 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     private var eventChannel: EventChannel? = null
     private var eventSink: EventChannel.EventSink? = null
 
-    private var context: Context? = null
+    private var appContext: Context? = null
     private var connectIQ: ConnectIQ? = null
     private var connectedDevice: IQDevice? = null
     private var watchApp: IQApp? = null
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
-        context = binding.applicationContext
+        appContext = binding.applicationContext
 
         methodChannel = MethodChannel(binding.binaryMessenger, METHOD_CHANNEL)
         methodChannel?.setMethodCallHandler(this)
@@ -48,16 +48,15 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         methodChannel?.setMethodCallHandler(null)
-        context?.let { connectIQ?.shutdown(it) }
-        context = null
+        appContext?.let { connectIQ?.shutdown(it) }
+        appContext = null
     }
 
     private fun initConnectIQ() {
-        val ctx = context ?: return
+        val ctx = appContext ?: return
         connectIQ = ConnectIQ.getInstance(ctx, ConnectIQ.IQConnectType.WIRELESS)
         connectIQ?.initialize(ctx, true, object : ConnectIQ.ConnectIQListener {
             override fun onSdkReady() {
-                // Zoek het eerste verbonden Garmin-apparaat
                 val devices = connectIQ?.connectedDevices
                 if (!devices.isNullOrEmpty()) {
                     connectedDevice = devices[0]
@@ -66,7 +65,7 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 }
             }
             override fun onInitializeError(status: ConnectIQ.IQSdkErrorStatus) {
-                // Garmin Connect niet beschikbaar of geen apparaat
+                // Garmin Connect niet beschikbaar of geen apparaat gekoppeld
             }
             override fun onSdkShutDown() {
                 connectedDevice = null
@@ -79,20 +78,26 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         val device = connectedDevice ?: return
         val app    = watchApp ?: return
 
-        connectIQ?.registerForAppEvents(device, app) { _, _, messageData, status ->
-            if (status == ConnectIQ.IQMessageStatus.SUCCESS && messageData != null) {
-                for (item in messageData) {
-                    @Suppress("UNCHECKED_CAST")
-                    val map = item as? Map<String, Any> ?: continue
-                    val cmd = map["cmd"] as? String ?: continue
-                    // Stuur commando door naar Flutter via EventChannel
-                    eventSink?.success(cmd)
+        connectIQ?.registerForAppEvents(device, app,
+            object : ConnectIQ.IQApplicationEventListener {
+                override fun onMessageReceived(
+                    device: IQDevice,
+                    app: IQApp,
+                    messageData: List<*>,
+                    status: ConnectIQ.IQMessageStatus
+                ) {
+                    if (status != ConnectIQ.IQMessageStatus.SUCCESS) return
+                    for (item in messageData) {
+                        @Suppress("UNCHECKED_CAST")
+                        val map = item as? Map<String, Any> ?: continue
+                        val cmd = map["cmd"] as? String ?: continue
+                        eventSink?.success(cmd)
+                    }
                 }
             }
-        }
+        )
     }
 
-    // Flutter roept dit aan om de huidige timerstatus naar het horloge te sturen
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
             "sendTimerState" -> {
@@ -108,6 +113,16 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     private fun sendToWatch(data: Map<String, Any>) {
         val device = connectedDevice ?: return
         val app    = watchApp ?: return
-        connectIQ?.sendMessage(device, app, data) { _, _, _ -> }
+        connectIQ?.sendMessage(device, app, data,
+            object : ConnectIQ.IQSendMessageListener {
+                override fun onMessageStatus(
+                    device: IQDevice,
+                    app: IQApp,
+                    status: ConnectIQ.IQMessageStatus
+                ) {
+                    // Stille fout — horloge niet bereikbaar
+                }
+            }
+        )
     }
 }
