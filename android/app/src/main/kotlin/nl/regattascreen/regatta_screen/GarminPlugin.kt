@@ -54,24 +54,28 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
 
     private fun initConnectIQ() {
         val ctx = appContext ?: return
-        connectIQ = ConnectIQ.getInstance(ctx, ConnectIQ.IQConnectType.WIRELESS)
-        connectIQ?.initialize(ctx, true, object : ConnectIQ.ConnectIQListener {
-            override fun onSdkReady() {
-                val devices = connectIQ?.connectedDevices
-                if (!devices.isNullOrEmpty()) {
-                    connectedDevice = devices[0]
-                    watchApp = IQApp(WATCH_APP_ID)
-                    registerForWatchMessages()
+        try {
+            connectIQ = ConnectIQ.getInstance(ctx, ConnectIQ.IQConnectType.WIRELESS)
+            connectIQ?.initialize(ctx, false, object : ConnectIQ.ConnectIQListener {
+                override fun onSdkReady() {
+                    val devices = connectIQ?.connectedDevices
+                    if (!devices.isNullOrEmpty()) {
+                        connectedDevice = devices[0]
+                        watchApp = IQApp(WATCH_APP_ID)
+                        registerForWatchMessages()
+                    }
                 }
-            }
-            override fun onInitializeError(status: ConnectIQ.IQSdkErrorStatus) {
-                // Garmin Connect niet beschikbaar of geen apparaat gekoppeld
-            }
-            override fun onSdkShutDown() {
-                connectedDevice = null
-                watchApp = null
-            }
-        })
+                override fun onInitializeError(status: ConnectIQ.IQSdkErrorStatus) {
+                    // Garmin Connect niet beschikbaar of geen apparaat gekoppeld
+                }
+                override fun onSdkShutDown() {
+                    connectedDevice = null
+                    watchApp = null
+                }
+            })
+        } catch (e: Exception) {
+            // Garmin Connect app niet geïnstalleerd — horloge-functie niet beschikbaar
+        }
     }
 
     private fun registerForWatchMessages() {
