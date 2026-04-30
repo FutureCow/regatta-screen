@@ -40,6 +40,27 @@ jobs:
           chmod +x connectiq-sdk/bin/monkeyc
           echo "SDK version: $(connectiq-sdk/bin/monkeyc --version)"
 
+      # ── Garmin device definitions (fr965) ─────────────────────────────────
+      - name: Download fr965 device definition
+        run: |
+          DEVICES_JSON=$(curl -s https://developer.garmin.com/downloads/connect-iq/devices/devices.json)
+          FR965_URL=$(echo "$DEVICES_JSON" | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          for d in data:
+            if d.get('deviceId') == 'fr965' or d.get('id') == 'fr965':
+              url = d.get('linux') or d.get('url') or ''
+              if url and not url.startswith('http'):
+                url = 'https://developer.garmin.com/downloads/connect-iq/devices/' + url
+              print(url)
+              break
+          ")
+          echo "fr965 device URL: $FR965_URL"
+          mkdir -p "$HOME/.Garmin/ConnectIQ/Devices"
+          curl -fL "$FR965_URL" -o fr965.zip
+          unzip -q fr965.zip -d "$HOME/.Garmin/ConnectIQ/Devices/"
+          echo "Device installed: $(ls $HOME/.Garmin/ConnectIQ/Devices/)"
+
       # ── Garmin Android Mobile SDK (AAR voor Android build) ─────────────────
       - name: Download Garmin Android SDK AAR
         run: |
