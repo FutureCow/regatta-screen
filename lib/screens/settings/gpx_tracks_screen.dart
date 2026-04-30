@@ -394,7 +394,9 @@ class _SetRaceCodeSheetState extends State<_SetRaceCodeSheet> {
 
   void _confirm() {
     final code = _controller.text.toUpperCase().trim();
-    final raceName = _preview!['race_name'] as String;
+    final raceName = (_preview!['race_name'] as String?) ??
+        (_preview!['series_name'] as String?) ??
+        code;
     final className = _preview!['class_name'] as String;
     final label = '$raceName · $className';
     widget.onConfirm(code, label);
@@ -461,33 +463,7 @@ class _SetRaceCodeSheetState extends State<_SetRaceCodeSheet> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: theme.dividerColor),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (_preview!['series_name'] != null)
-                    Text(_preview!['series_name'] as String,
-                        style: theme.textTheme.labelSmall),
-                  Text(_preview!['race_name'] as String,
-                      style: theme.textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 4),
-                  Row(children: [
-                    const Icon(Icons.flag, size: 14),
-                    const SizedBox(width: 6),
-                    Text(_preview!['class_name'] as String,
-                        style: theme.textTheme.bodyMedium),
-                  ]),
-                  if (_preview!['race_date'] != null) ...[
-                    const SizedBox(height: 2),
-                    Row(children: [
-                      const Icon(Icons.calendar_today, size: 14),
-                      const SizedBox(width: 6),
-                      Text(_preview!['race_date'] as String,
-                          style: theme.textTheme.bodySmall),
-                    ]),
-                  ],
-                ],
-              ),
+              child: _buildPreviewContent(theme, _preview!),
             ),
             const SizedBox(height: 14),
             ElevatedButton(
@@ -499,6 +475,40 @@ class _SetRaceCodeSheetState extends State<_SetRaceCodeSheet> {
       ),
     );
   }
+}
+
+Widget _buildPreviewContent(ThemeData theme, Map<String, dynamic> preview) {
+  final isSeriesCode = preview['code_type'] == 'series';
+  final seriesName = preview['series_name'] as String?;
+  final raceName = preview['race_name'] as String?;
+  final className = preview['class_name'] as String;
+  final raceDate = preview['race_date'] as String?;
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      if (seriesName != null)
+        Text(seriesName, style: theme.textTheme.labelSmall),
+      Text(
+        isSeriesCode ? 'Alle wedstrijden in de reeks' : (raceName ?? ''),
+        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+      ),
+      const SizedBox(height: 4),
+      Row(children: [
+        const Icon(Icons.flag, size: 14),
+        const SizedBox(width: 6),
+        Text(className, style: theme.textTheme.bodyMedium),
+      ]),
+      if (!isSeriesCode && raceDate != null) ...[
+        const SizedBox(height: 2),
+        Row(children: [
+          const Icon(Icons.calendar_today, size: 14),
+          const SizedBox(width: 6),
+          Text(raceDate, style: theme.textTheme.bodySmall),
+        ]),
+      ],
+    ],
+  );
 }
 
 class _CodeJoinSheet extends StatefulWidget {
@@ -610,33 +620,7 @@ class _CodeJoinSheetState extends State<_CodeJoinSheet> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: theme.dividerColor),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (_preview!['series_name'] != null)
-                    Text(_preview!['series_name'] as String,
-                        style: theme.textTheme.labelSmall),
-                  Text(_preview!['race_name'] as String,
-                      style: theme.textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 4),
-                  Row(children: [
-                    const Icon(Icons.flag, size: 14),
-                    const SizedBox(width: 6),
-                    Text(_preview!['class_name'] as String,
-                        style: theme.textTheme.bodyMedium),
-                  ]),
-                  if (_preview!['race_date'] != null) ...[
-                    const SizedBox(height: 2),
-                    Row(children: [
-                      const Icon(Icons.calendar_today, size: 14),
-                      const SizedBox(width: 6),
-                      Text(_preview!['race_date'] as String,
-                          style: theme.textTheme.bodySmall),
-                    ]),
-                  ],
-                ],
-              ),
+              child: _buildPreviewContent(theme, _preview!),
             ),
             const SizedBox(height: 14),
             ElevatedButton(
