@@ -2,6 +2,7 @@
   <iq:application
       entry="RegattaApp"
       id="a3872ef8-5b7d-4c5e-9b1e-2f4d8a6c3e1f"
+      name="Regatta Timer"
       minApiLevel="3.2.0"
       type="watch-app">
     <iq:products>
