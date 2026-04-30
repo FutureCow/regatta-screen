@@ -6,13 +6,12 @@
       name="Regatta Timer"
       minApiLevel="3.2.0"
       type="watch-app">
-    <iq:products/>
+    <iq:products>
+      <iq:product id="fr965"/>
+    </iq:products>
     <iq:permissions>
       <iq:uses-permission id="Communications"/>
     </iq:permissions>
-    <iq:languages>
-      <iq:language>dut</iq:language>
-      <iq:language>eng</iq:language>
-    </iq:languages>
+    <iq:languages/>
   </iq:application>
 </iq:manifest>
