@@ -40,27 +40,6 @@ jobs:
           chmod +x connectiq-sdk/bin/monkeyc
           echo "SDK version: $(connectiq-sdk/bin/monkeyc --version)"
 
-      # ── Garmin device definitions (fr965) ─────────────────────────────────
-      - name: Download fr965 device definition
-        run: |
-          DEVICES_JSON=$(curl -s https://developer.garmin.com/downloads/connect-iq/devices/devices.json)
-          FR965_URL=$(echo "$DEVICES_JSON" | python3 -c "
-          import json, sys
-          data = json.load(sys.stdin)
-          for d in data:
-            if d.get('deviceId') == 'fr965' or d.get('id') == 'fr965':
-              url = d.get('linux') or d.get('url') or ''
-              if url and not url.startswith('http'):
-                url = 'https://developer.garmin.com/downloads/connect-iq/devices/' + url
-              print(url)
-              break
-          ")
-          echo "fr965 device URL: $FR965_URL"
-          mkdir -p "$HOME/.Garmin/ConnectIQ/Devices"
-          curl -fL "$FR965_URL" -o fr965.zip
-          unzip -q fr965.zip -d "$HOME/.Garmin/ConnectIQ/Devices/"
-          echo "Device installed: $(ls $HOME/.Garmin/ConnectIQ/Devices/)"
-
       # ── Garmin Android Mobile SDK (AAR voor Android build) ─────────────────
       - name: Download Garmin Android SDK AAR
         run: |
@@ -70,16 +49,16 @@ jobs:
             -o android/app/libs/monkeybrains-sdk-release.aar
           echo "AAR: $(ls -lh android/app/libs/*.aar)"
 
-      # ── Garmin watch app (.prg) ────────────────────────────────────────────
+      # ── Garmin watch app (.iq package — werkt op alle compatibele horloges) ──
       - name: Build Garmin watch app
         run: |
           echo "${{ secrets.GARMIN_DEVELOPER_KEY_B64 }}" | base64 --decode > developer_key.der
           connectiq-sdk/bin/monkeyc \
-            -d fr965 \
+            -e \
             -f garmin/monkey.jungle \
-            -o RegattaTimer.prg \
+            -o RegattaTimer.iq \
             -y developer_key.der
-          echo "Garmin app: $(ls -lh RegattaTimer.prg)"
+          echo "Garmin app: $(ls -lh RegattaTimer.iq)"
 
       # ── Flutter dependencies ───────────────────────────────────────────────
       - name: Install dependencies
@@ -109,4 +88,4 @@ jobs:
           name: ${{ github.ref_name }}
           files: |
             build/app/outputs/flutter-apk/app-release.apk
-            RegattaTimer.prg
+            RegattaTimer.iq
