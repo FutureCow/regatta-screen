@@ -49,8 +49,35 @@ jobs:
             -o android/app/libs/monkeybrains-sdk-release.aar
           echo "AAR: $(ls -lh android/app/libs/*.aar)"
 
+      # ── Garmin device-definities (vereist door monkeyc compiler) ─────────────
+      - name: Create Garmin device definitions for fr965
+        run: |
+          DEVICE_JSON='{
+            "deviceId": "fr965",
+            "displayName": "Forerunner 965",
+            "deviceFamilyId": "round-454x454",
+            "resolution": { "width": 454, "height": 454 },
+            "launcherResolution": { "width": 454, "height": 454 },
+            "pixelFormat": "16bpp",
+            "outputColorSpace": "16bpp",
+            "codePageSize": 4096,
+            "supportsExport": true,
+            "hasGPU": true,
+            "supportsAlphaBlending": true,
+            "supportsScreenRotation": false,
+            "menuBarHeight": 0,
+            "wwPartNumber": "010-02809-00",
+            "partNumbers": ["010-02809-00", "006-B4315-00"],
+            "supportedAppTypeContexts": ["watchface", "watch-app", "datafield", "widget", "activity"]
+          }'
+          # Standaard SDK Manager locatie
+          mkdir -p ~/.Garmin/ConnectIQ/Devices/fr965
+          echo "$DEVICE_JSON" > ~/.Garmin/ConnectIQ/Devices/fr965/compiler.json
+          # Alternatieve locatie naast SDK bin/
+          mkdir -p connectiq-sdk/devices/fr965
+          echo "$DEVICE_JSON" > connectiq-sdk/devices/fr965/compiler.json
+
       # ── Garmin watch app (.iq package) ────────────────────────────────────
-      # Device-definities zijn niet beschikbaar in CI (vereisen SDK Manager).
       # Als de build mislukt, gaat de APK release gewoon door.
       - name: Build Garmin watch app
         id: garmin_build
