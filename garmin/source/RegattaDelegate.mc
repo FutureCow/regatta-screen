@@ -31,7 +31,7 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
     function onTap(evt as WatchUi.ClickEvent) as Boolean {
         var coords = evt.getCoordinates();
         var y = coords[1];
-        var h = WatchUi.getDeviceScreenHeight();
+        var h = System.getDeviceSettings().screenHeight;
 
         // Bovenste 40% scherm = +1, onderste 40% = -1, midden = start/stop
         if (y < h * 0.35f) {
