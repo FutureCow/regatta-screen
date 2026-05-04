@@ -68,7 +68,13 @@ jobs:
             "screenRotationSupport": false,
             "exportSupport": true,
             "codePageSize": 4096,
-            "appTypes": ["watchface", "watch-app", "datafield", "widget", "activity"]
+            "appTypes": [
+              { "type": "watch-app",  "memoryLimit": 786432 },
+              { "type": "watchface",  "memoryLimit": 131072 },
+              { "type": "datafield",  "memoryLimit": 262144 },
+              { "type": "background", "memoryLimit": 65536 },
+              { "type": "glance",     "memoryLimit": 65536 }
+            ]
           }'
           mkdir -p ~/.Garmin/ConnectIQ/Devices/fr965
           echo "$DEVICE_JSON" > ~/.Garmin/ConnectIQ/Devices/fr965/compiler.json
