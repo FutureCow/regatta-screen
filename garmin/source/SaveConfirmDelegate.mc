@@ -11,8 +11,8 @@ class SaveConfirmDelegate extends WatchUi.ConfirmationDelegate {
         _session = session;
     }
 
-    function onResponse(response as Boolean) as Boolean {
-        if (response) {
+    function onResponse(response) as Boolean {
+        if (response == WatchUi.CONFIRM_YES) {
             _session.save();
         } else {
             _session.discard();

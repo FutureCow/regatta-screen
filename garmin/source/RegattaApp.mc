@@ -1,3 +1,4 @@
+import Toybox.Activity;
 import Toybox.ActivityRecording;
 import Toybox.Application;
 import Toybox.Communications;
@@ -87,8 +88,8 @@ class RegattaApp extends Application.AppBase {
         try {
             _session = ActivityRecording.createSession({
                 :name     => "Zeilen",
-                :sport    => 41,  // FIT sport code sailing
-                :subSport => 0
+                :sport    => Activity.SPORT_SAILING,
+                :subSport => Activity.SUB_SPORT_GENERIC
             });
             (_session as ActivityRecording.Session).start();
         } catch (ex) {
