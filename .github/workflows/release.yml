@@ -40,15 +40,6 @@ jobs:
           chmod +x connectiq-sdk/bin/monkeyc
           echo "SDK version: $(connectiq-sdk/bin/monkeyc --version)"
 
-      # ── Garmin Android Mobile SDK (AAR voor Android build) ─────────────────
-      - name: Download Garmin Android SDK AAR
-        run: |
-          mkdir -p android/app/libs
-          curl -fL \
-            "https://raw.githubusercontent.com/garmin/connectiq-android-sdk/main/Comm%20Android/app/libs/monkeybrains-sdk-release.aar" \
-            -o android/app/libs/monkeybrains-sdk-release.aar
-          echo "AAR: $(ls -lh android/app/libs/*.aar)"
-
       # ── Garmin device-definities (vereist door monkeyc compiler) ─────────────
       - name: Create Garmin device definitions for fr965
         run: |

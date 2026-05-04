@@ -54,9 +54,7 @@ android {
 }
 
 dependencies {
-    // Garmin Connect IQ Mobile SDK (AAR — zie setup-instructies)
-    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar"))))
-    // Vereiste transitieve dependency van Garmin SDK
+    implementation("com.garmin.connectiq:ciq-companion-app-sdk:2.2.0@aar")
     implementation("com.google.code.gson:gson:2.10.1")
 }
 
