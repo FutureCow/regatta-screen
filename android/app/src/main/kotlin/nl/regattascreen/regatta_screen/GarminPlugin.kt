@@ -14,7 +14,6 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     companion object {
         const val METHOD_CHANNEL = "nl.regattascreen/garmin"
         const val EVENT_CHANNEL  = "nl.regattascreen/garmin_events"
-        // Moet overeenkomen met de UUID in garmin/manifest.xml
         const val WATCH_APP_ID   = "a3872ef8-5b7d-4c5e-9b1e-2f4d8a6c3e1f"
     }
 
@@ -58,24 +57,51 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
             connectIQ = ConnectIQ.getInstance(ctx, ConnectIQ.IQConnectType.WIRELESS)
             connectIQ?.initialize(ctx, false, object : ConnectIQ.ConnectIQListener {
                 override fun onSdkReady() {
+                    // Probeer al verbonden apparaten
                     val devices = connectIQ?.connectedDevices
                     if (!devices.isNullOrEmpty()) {
-                        connectedDevice = devices[0]
-                        watchApp = IQApp(WATCH_APP_ID)
-                        registerForWatchMessages()
+                        activateDevice(devices[0])
                     }
+                    // Luister ook naar toekomstige verbindingswijzigingen
+                    registerForDeviceEvents()
                 }
-                override fun onInitializeError(status: ConnectIQ.IQSdkErrorStatus) {
-                    // Garmin Connect niet beschikbaar of geen apparaat gekoppeld
-                }
+                override fun onInitializeError(status: ConnectIQ.IQSdkErrorStatus) {}
                 override fun onSdkShutDown() {
                     connectedDevice = null
                     watchApp = null
                 }
             })
         } catch (e: Exception) {
-            // Garmin Connect app niet geïnstalleerd — horloge-functie niet beschikbaar
+            // Garmin Connect app niet geïnstalleerd
         }
+    }
+
+    private fun registerForDeviceEvents() {
+        val knownDevices = try {
+            connectIQ?.knownDevices
+        } catch (e: Exception) { null } ?: return
+
+        for (device in knownDevices) {
+            try {
+                connectIQ?.registerForDeviceEvents(device) { dev, status ->
+                    when (status) {
+                        IQDevice.IQDeviceStatus.CONNECTED -> activateDevice(dev)
+                        else -> {
+                            if (connectedDevice?.deviceIdentifier == dev.deviceIdentifier) {
+                                connectedDevice = null
+                                watchApp = null
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {}
+        }
+    }
+
+    private fun activateDevice(device: IQDevice) {
+        connectedDevice = device
+        watchApp = IQApp(WATCH_APP_ID)
+        registerForWatchMessages()
     }
 
     private fun registerForWatchMessages() {
@@ -123,9 +149,7 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                     device: IQDevice,
                     app: IQApp,
                     status: ConnectIQ.IQMessageStatus
-                ) {
-                    // Stille fout — horloge niet bereikbaar
-                }
+                ) {}
             }
         )
     }
