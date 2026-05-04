@@ -57,24 +57,29 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
 
     private fun initConnectIQ() {
         val ctx = appContext ?: return
+        android.util.Log.d("GarminPlugin", "initConnectIQ start")
         try {
             connectIQ = ConnectIQ.getInstance(ctx, ConnectIQ.IQConnectType.WIRELESS)
+            android.util.Log.d("GarminPlugin", "getInstance ok, calling initialize")
             connectIQ?.initialize(ctx, false, object : ConnectIQ.ConnectIQListener {
                 override fun onSdkReady() {
+                    android.util.Log.d("GarminPlugin", "onSdkReady")
                     sdkReady = true
                     refreshConnectedDevice()
                     registerForDeviceEvents()
                 }
                 override fun onInitializeError(status: ConnectIQ.IQSdkErrorStatus) {
-                    android.util.Log.e("GarminPlugin", "ConnectIQ init error: $status")
+                    android.util.Log.e("GarminPlugin", "onInitializeError: $status")
                     eventSink?.error("GARMIN_INIT_ERROR", status.name, null)
                 }
                 override fun onSdkShutDown() {
+                    android.util.Log.d("GarminPlugin", "onSdkShutDown")
                     sdkReady = false
                     connectedDevice = null
                     watchApp = null
                 }
             })
+            android.util.Log.d("GarminPlugin", "initialize called")
         } catch (e: Exception) {
             android.util.Log.e("GarminPlugin", "initConnectIQ exception: ${e.javaClass.simpleName}: ${e.message}")
         }
