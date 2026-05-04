@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 
 /// Commando's die de Garmin watch kan sturen
-enum GarminCommand { startStop, plusOne, minusOne }
+enum GarminCommand { startStop, plusOne, minusOne, setTimer5, setTimer10, setTimer15 }
 
 class GarminService {
   static const _method = MethodChannel('nl.regattascreen/garmin');
@@ -41,6 +41,9 @@ class GarminService {
       case 'start_stop': return GarminCommand.startStop;
       case 'plus_one':   return GarminCommand.plusOne;
       case 'minus_one':  return GarminCommand.minusOne;
+      case 'set_5':      return GarminCommand.setTimer5;
+      case 'set_10':     return GarminCommand.setTimer10;
+      case 'set_15':     return GarminCommand.setTimer15;
       default:           return null;
     }
   }

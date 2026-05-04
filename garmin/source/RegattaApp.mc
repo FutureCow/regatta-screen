@@ -99,11 +99,17 @@ class RegattaApp extends Application.AppBase {
     private function _stopRecording(save as Boolean) as Void {
         if (_session == null) { return; }
         var s = _session as ActivityRecording.Session;
+        _session = null;
         try {
             s.stop();
-            if (save) { s.save(); } else { s.discard(); }
+            if (save) {
+                // Bevestiging vragen vóór opslaan
+                var confirm = new WatchUi.Confirmation("Activiteit opslaan?");
+                WatchUi.pushView(confirm, new SaveConfirmDelegate(s), WatchUi.SLIDE_UP);
+            } else {
+                s.discard();
+            }
         } catch (e instanceof Exception) {}
-        _session = null;
     }
 
     private function _refreshView() as Void {

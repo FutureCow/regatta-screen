@@ -41,6 +41,11 @@ class TimerNotifier extends Notifier<TimerState> {
     }
   }
 
+  void setTimerTo(Duration d) {
+    _ticker?.cancel();
+    state = TimerState.initial().copyWith(duration: d, remaining: d);
+  }
+
   void roundDown() {
     final secs = state.remaining.inSeconds;
     final rounded = (secs ~/ 60) * 60;

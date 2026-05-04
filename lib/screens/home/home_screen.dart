@@ -73,6 +73,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           timer.roundUp();
         case GarminCommand.minusOne:
           timer.roundDown();
+        case GarminCommand.setTimer5:
+          timer.setTimerTo(const Duration(minutes: 5));
+        case GarminCommand.setTimer10:
+          timer.setTimerTo(const Duration(minutes: 10));
+        case GarminCommand.setTimer15:
+          timer.setTimerTo(const Duration(minutes: 15));
       }
     });
   }

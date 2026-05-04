@@ -1,6 +1,7 @@
 import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.WatchUi;
+import Toybox.System;
 
 // Stuurt commando's naar de telefoon via Garmin Connect Mobile
 class RegattaDelegate extends WatchUi.BehaviorDelegate {
@@ -41,6 +42,16 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
         } else {
             sendCommand("start_stop");
         }
+        return true;
+    }
+
+    // Lang indrukken midden-links: timer instellen menu
+    function onMenu() as Boolean {
+        var menu = new WatchUi.Menu2({:title => "Timer instellen"});
+        menu.addItem(new WatchUi.MenuItem("5 minuten",  null, :five,    {}));
+        menu.addItem(new WatchUi.MenuItem("10 minuten", null, :ten,     {}));
+        menu.addItem(new WatchUi.MenuItem("15 minuten", null, :fifteen, {}));
+        WatchUi.pushView(menu, new TimerMenuDelegate(), WatchUi.SLIDE_UP);
         return true;
     }
 
