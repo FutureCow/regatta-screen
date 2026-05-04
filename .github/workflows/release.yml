@@ -55,26 +55,21 @@ jobs:
           DEVICE_JSON='{
             "deviceId": "fr965",
             "displayName": "Forerunner 965",
-            "deviceFamilyId": "round-454x454",
-            "resolution": { "width": 454, "height": 454 },
-            "launcherResolution": { "width": 454, "height": 454 },
-            "bpp": 16,
-            "codePageSize": 4096,
-            "supportsExport": true,
-            "hasGPU": true,
-            "supportsAlphaBlending": true,
-            "supportsScreenRotation": false,
-            "menuBarHeight": 0,
-            "wwPartNumber": "010-02809-00",
+            "deviceFamily": "round-454x454",
+            "worldWidePartNumber": "010-02809-00",
             "partNumbers": ["010-02809-00", "006-B4315-00"],
-            "supportedAppTypeContexts": ["watchface", "watch-app", "datafield", "widget", "activity"]
+            "resolution": { "width": 454, "height": 454 },
+            "bitsPerPixel": 16,
+            "orientation": "GFX_ORNTN_0",
+            "gpuSupport": true,
+            "alphaBlendingSupport": true,
+            "screenRotationSupport": false,
+            "exportSupport": true,
+            "codePageSize": 4096,
+            "appTypes": ["watchface", "watch-app", "datafield", "widget", "activity"]
           }'
-          # Standaard SDK Manager locatie
           mkdir -p ~/.Garmin/ConnectIQ/Devices/fr965
           echo "$DEVICE_JSON" > ~/.Garmin/ConnectIQ/Devices/fr965/compiler.json
-          # Alternatieve locatie naast SDK bin/
-          mkdir -p connectiq-sdk/devices/fr965
-          echo "$DEVICE_JSON" > connectiq-sdk/devices/fr965/compiler.json
 
       # ── Garmin watch app (.iq package) ────────────────────────────────────
       # Als de build mislukt, gaat de APK release gewoon door.
@@ -85,6 +80,7 @@ jobs:
           echo "${{ secrets.GARMIN_DEVELOPER_KEY_B64 }}" | base64 --decode > developer_key.der
           connectiq-sdk/bin/monkeyc \
             -e \
+            --override-devices-json ~/.Garmin/ConnectIQ/Devices \
             -f garmin/monkey.jungle \
             -o RegattaTimer.iq \
             -y developer_key.der
