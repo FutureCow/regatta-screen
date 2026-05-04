@@ -59,7 +59,7 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         val ctx = appContext ?: return
         android.util.Log.d("GarminPlugin", "initConnectIQ start")
         try {
-            connectIQ = ConnectIQ.getInstance(ctx, ConnectIQ.IQConnectType.WIRELESS)
+            connectIQ = ConnectIQ.getInstance(ctx, ConnectIQ.IQConnectType.TETHERED)
             android.util.Log.d("GarminPlugin", "getInstance ok, calling initialize")
             connectIQ?.initialize(ctx, false, object : ConnectIQ.ConnectIQListener {
                 override fun onSdkReady() {
