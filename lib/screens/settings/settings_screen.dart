@@ -1,6 +1,7 @@
 // lib/screens/settings/settings_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../models/app_settings.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -221,6 +222,9 @@ class _SettingsBody extends ConsumerWidget {
                 ),
               ),
           ]),
+
+          // ── Versie ───────────────────────────────────────────────────────
+          const _VersionTile(),
         ],
       ),
     );
@@ -263,6 +267,40 @@ class _SettingsBody extends ConsumerWidget {
               },
               child: const Text('Opslaan')),
         ],
+      ),
+    );
+  }
+}
+
+class _VersionTile extends StatefulWidget {
+  const _VersionTile();
+
+  @override
+  State<_VersionTile> createState() => _VersionTileState();
+}
+
+class _VersionTileState extends State<_VersionTile> {
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    PackageInfo.fromPlatform().then((info) {
+      if (mounted) setState(() => _version = 'v${info.version}');
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Center(
+        child: Text(
+          _version,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+              ),
+        ),
       ),
     );
   }
