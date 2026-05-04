@@ -76,7 +76,7 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 }
             })
         } catch (e: Exception) {
-            // Garmin Connect app niet geïnstalleerd
+            android.util.Log.e("GarminPlugin", "initConnectIQ exception: ${e.javaClass.simpleName}: ${e.message}")
         }
     }
 
