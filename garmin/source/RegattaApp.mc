@@ -68,18 +68,16 @@ class RegattaApp extends Application.AppBase {
 
         var phoneRem     = remData as Number;
         var phoneRunning = runData as Boolean;
-        var runChanged   = (phoneRunning != _running);
         var isKeyMoment  = (phoneRem == 900 || phoneRem == 600 || phoneRem == 300);
-        var bigDrift     = (_remaining - phoneRem).abs() > 10;
 
-        if (isKeyMoment || runChanged || bigDrift || !_connected) {
-            // Overschrijf lokale elapsed time (negatief) nooit met telefoon's 0
-            if (!(phoneRem == 0 && _remaining < 0)) {
-                _remaining = phoneRem;
-            }
-            _running   = phoneRunning;
-            _connected = true;
+        // Sync remaining alleen bij eerste verbinding of sleutelmomenten (5/10/15 min)
+        if (!_connected || isKeyMoment) {
+            _remaining = phoneRem;
         }
+
+        // Running-status altijd volgen (start/stop op telefoon moet direct doorkomen)
+        _running   = phoneRunning;
+        _connected = true;
 
         _checkRecording();
         _refreshView();
