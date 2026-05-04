@@ -19,12 +19,14 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
     // Knop: Up  →  +1 minuut
     function onNextPage() as Boolean {
         sendCommand("minus_one");
+        getApp().roundDown();
         return true;
     }
 
     // Knop: Down  →  -1 minuut
     function onPreviousPage() as Boolean {
         sendCommand("plus_one");
+        getApp().roundUp();
         return true;
     }
 

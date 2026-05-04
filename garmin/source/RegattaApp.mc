@@ -82,6 +82,19 @@ class RegattaApp extends Application.AppBase {
         _refreshView();
     }
 
+    // Directe lokale aanpassing bij knopdruk — telefoon synct de exacte waarde kort daarna
+    function roundUp() as Void {
+        var mins = _remaining / 60;
+        var secs = _remaining % 60;
+        _remaining = (secs != 0) ? (mins + 1) * 60 : _remaining + 60;
+        _refreshView();
+    }
+
+    function roundDown() as Void {
+        _remaining = (_remaining / 60) * 60;
+        _refreshView();
+    }
+
     private function _checkRecording() as Void {
         // Start opname eenmalig: timer loopt en <= 5 min resterend
         if (_running && _remaining <= 300 && !_recordingActive) {
