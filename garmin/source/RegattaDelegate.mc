@@ -52,10 +52,6 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
 
     private function sendCommand(cmd as String) as Void {
         var msg = {"cmd" => cmd} as Dictionary;
-        Communications.transmit(msg, null, method(:onTransmit));
-    }
-
-    function onTransmit(responseCode as Number) as Void {
-        // responseCode 200 = ok; anders: verbindingsfout
+        Communications.transmit(msg, null, new Communications.ConnectionListener());
     }
 }
