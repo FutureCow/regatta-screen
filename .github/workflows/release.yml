@@ -80,7 +80,7 @@ jobs:
           mkdir -p ~/.Garmin/ConnectIQ/Devices/fr965
           echo "$DEVICE_JSON" > ~/.Garmin/ConnectIQ/Devices/fr965/compiler.json
 
-      # ── Garmin watch app (.iq package) ────────────────────────────────────
+      # ── Garmin watch app (.iq package + .prg voor fr965) ─────────────────
       # Als de build mislukt, gaat de APK release gewoon door.
       - name: Build Garmin watch app
         id: garmin_build
@@ -93,7 +93,14 @@ jobs:
             -f garmin/monkey.jungle \
             -o RegattaTimer.iq \
             -y developer_key.der
-          echo "Garmin app: $(ls -lh RegattaTimer.iq)"
+          echo "Garmin .iq: $(ls -lh RegattaTimer.iq)"
+          connectiq-sdk/bin/monkeyc \
+            -d fr965 \
+            --override-devices-json ~/.Garmin/ConnectIQ/Devices \
+            -f garmin/monkey.jungle \
+            -o RegattaTimer-fr965.prg \
+            -y developer_key.der
+          echo "Garmin .prg: $(ls -lh RegattaTimer-fr965.prg)"
 
       # ── Flutter dependencies ───────────────────────────────────────────────
       - name: Install dependencies
@@ -117,12 +124,14 @@ jobs:
         run: flutter build apk --release
 
       # ── GitHub release ─────────────────────────────────────────────────────
-      - name: Upload Garmin .iq to release
+      - name: Upload Garmin bestanden to release
         if: steps.garmin_build.outcome == 'success'
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ github.ref_name }}
-          files: RegattaTimer.iq
+          files: |
+            RegattaTimer.iq
+            RegattaTimer-fr965.prg
 
       - name: Upload APK to release
         uses: softprops/action-gh-release@v2
