@@ -61,7 +61,7 @@ jobs:
               { "number": "006-B4315-00", "firmwareVersion": "2502", "connectIQVersion": "5.2.0" }
             ],
             "resolution": { "width": 454, "height": 454 },
-            "launcherResolution": { "width": 65, "height": 65 },
+            "launcherIcon": { "width": 65, "height": 65 },
             "bitsPerPixel": 16,
             "orientation": "GFX_ORNTN_0",
             "gpuSupport": true,
