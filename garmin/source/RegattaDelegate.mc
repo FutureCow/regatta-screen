@@ -55,9 +55,10 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // Terugknop: sluit app
+    // Terugknop: bevestiging vragen voor afsluiten
     function onBack() as Boolean {
-        WatchUi.popView(WatchUi.SLIDE_DOWN);
+        var confirm = new WatchUi.Confirmation("App afsluiten?");
+        WatchUi.pushView(confirm, new ExitConfirmDelegate(), WatchUi.SLIDE_UP);
         return true;
     }
 
