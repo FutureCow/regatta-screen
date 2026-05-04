@@ -14,6 +14,7 @@ class GarminService {
   Stream<GarminCommand> get commands {
     _commandStream ??= _events
         .receiveBroadcastStream()
+        .handleError((_) {})
         .map((event) => _parse(event as String))
         .where((cmd) => cmd != null)
         .cast<GarminCommand>();

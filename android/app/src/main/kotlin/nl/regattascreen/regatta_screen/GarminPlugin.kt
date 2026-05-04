@@ -25,6 +25,7 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     private var connectIQ: ConnectIQ? = null
     private var connectedDevice: IQDevice? = null
     private var watchApp: IQApp? = null
+    private var sdkReady = false
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         appContext = binding.applicationContext
@@ -47,7 +48,10 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         methodChannel?.setMethodCallHandler(null)
-        appContext?.let { connectIQ?.shutdown(it) }
+        if (sdkReady) {
+            try { appContext?.let { connectIQ?.shutdown(it) } } catch (_: Exception) {}
+        }
+        sdkReady = false
         appContext = null
     }
 
@@ -57,11 +61,16 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
             connectIQ = ConnectIQ.getInstance(ctx, ConnectIQ.IQConnectType.WIRELESS)
             connectIQ?.initialize(ctx, false, object : ConnectIQ.ConnectIQListener {
                 override fun onSdkReady() {
+                    sdkReady = true
                     refreshConnectedDevice()
                     registerForDeviceEvents()
                 }
-                override fun onInitializeError(status: ConnectIQ.IQSdkErrorStatus) {}
+                override fun onInitializeError(status: ConnectIQ.IQSdkErrorStatus) {
+                    android.util.Log.e("GarminPlugin", "ConnectIQ init error: $status")
+                    eventSink?.error("GARMIN_INIT_ERROR", status.name, null)
+                }
                 override fun onSdkShutDown() {
+                    sdkReady = false
                     connectedDevice = null
                     watchApp = null
                 }
