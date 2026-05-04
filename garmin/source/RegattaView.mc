@@ -4,8 +4,8 @@ import Toybox.WatchUi;
 
 class RegattaView extends WatchUi.View {
 
-    private var _remaining as Number?;   // seconden
-    private var _running   as Boolean?;
+    private var _remaining as Number = 0;
+    private var _running   as Boolean = false;
     private var _connected as Boolean = false;
 
     function initialize() {
@@ -13,28 +13,24 @@ class RegattaView extends WatchUi.View {
     }
 
     function onLayout(dc as Graphics.Dc) as Void {
-        // Geen XML layout — alles via onUpdate
     }
 
-    // Oproep vanuit RegattaApp.onPhoneMessage
-    function update(remaining as Number?, running as Boolean?) as Void {
+    function update(remaining as Number, running as Boolean, connected as Boolean) as Void {
         _remaining = remaining;
         _running   = running;
-        _connected = true;
+        _connected = connected;
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
-        var w = dc.getWidth();   // 454 px op FR965
-        var h = dc.getHeight();  // 454 px
+        var w  = dc.getWidth();
+        var h  = dc.getHeight();
         var cx = w / 2;
         var cy = h / 2;
 
-        // Achtergrond
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
 
         if (!_connected) {
-            // Nog geen verbinding met telefoon
             dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, cy - 20, Graphics.FONT_MEDIUM,
                         WatchUi.loadResource(Rez.Strings.Connecting) as String,
@@ -42,27 +38,24 @@ class RegattaView extends WatchUi.View {
             return;
         }
 
-        var rem = _remaining != null ? _remaining as Number : 0;
-
-        // Bepaal kleur op basis van resterende tijd
+        // Timerkleur
         var timerColor;
-        if (_running == true) {
-            timerColor = rem > 60 ? Graphics.COLOR_GREEN
-                       : rem > 0  ? Graphics.COLOR_ORANGE
-                                  : Graphics.COLOR_RED;
+        if (_running) {
+            timerColor = _remaining > 60 ? Graphics.COLOR_GREEN
+                       : _remaining > 0  ? Graphics.COLOR_ORANGE
+                                         : Graphics.COLOR_RED;
         } else {
             timerColor = Graphics.COLOR_LT_GRAY;
         }
 
-        // Teken timer — MM:SS formaat
-        var timerStr = formatTime(rem);
+        // Timer MM:SS
         dc.setColor(timerColor, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, cy - 30, Graphics.FONT_NUMBER_HOT,
-                    timerStr,
+                    formatTime(_remaining),
                     Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
-        // Status label
-        var statusStr = (_running == true)
+        // Status
+        var statusStr = _running
             ? WatchUi.loadResource(Rez.Strings.Running) as String
             : WatchUi.loadResource(Rez.Strings.Paused)  as String;
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
@@ -70,17 +63,17 @@ class RegattaView extends WatchUi.View {
                     statusStr,
                     Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
-        // Knophints onderin
+        // Knophints — rechts, bij de fysieke knoppen (FR965)
         dc.setColor(0x404040, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx - 70, h - 55, Graphics.FONT_XTINY,
+        dc.drawText(w - 30, cy - 110, Graphics.FONT_XTINY,
                     WatchUi.loadResource(Rez.Strings.HintUp) as String,
-                    Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx + 70, h - 55, Graphics.FONT_XTINY,
+                    Graphics.TEXT_JUSTIFY_RIGHT);
+        dc.drawText(w - 30, cy + 90, Graphics.FONT_XTINY,
                     WatchUi.loadResource(Rez.Strings.HintDown) as String,
-                    Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx, h - 35, Graphics.FONT_XTINY,
+                    Graphics.TEXT_JUSTIFY_RIGHT);
+        dc.drawText(w - 30, cy - 10, Graphics.FONT_XTINY,
                     WatchUi.loadResource(Rez.Strings.HintEnter) as String,
-                    Graphics.TEXT_JUSTIFY_CENTER);
+                    Graphics.TEXT_JUSTIFY_RIGHT);
     }
 
     private function formatTime(totalSec as Number) as String {
