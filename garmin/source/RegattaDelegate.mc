@@ -13,6 +13,7 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
     // Knop: Start / Enter  →  start/stop timer
     function onSelect() as Boolean {
         sendCommand("start_stop");
+        getApp().toggleRunning();
         return true;
     }
 

@@ -73,7 +73,10 @@ class RegattaApp extends Application.AppBase {
         var bigDrift     = (_remaining - phoneRem).abs() > 10;
 
         if (isKeyMoment || runChanged || bigDrift || !_connected) {
-            _remaining = phoneRem;
+            // Overschrijf lokale elapsed time (negatief) nooit met telefoon's 0
+            if (!(phoneRem == 0 && _remaining < 0)) {
+                _remaining = phoneRem;
+            }
             _running   = phoneRunning;
             _connected = true;
         }
@@ -83,6 +86,12 @@ class RegattaApp extends Application.AppBase {
     }
 
     // Directe lokale aanpassing bij knopdruk — telefoon synct de exacte waarde kort daarna
+    function toggleRunning() as Void {
+        _running = !_running;
+        _checkRecording();
+        _refreshView();
+    }
+
     function roundUp() as Void {
         var mins = _remaining / 60;
         var secs = _remaining % 60;
