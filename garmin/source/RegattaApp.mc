@@ -10,11 +10,15 @@ var gView as RegattaView?;
 
 class RegattaApp extends Application.AppBase {
 
-    private var _remaining as Number = 0;
-    private var _running   as Boolean = false;
-    private var _connected as Boolean = false;
-    private var _timer     as Timer.Timer?;
-    private var _session   as ActivityRecording.Session?;
+    private var _remaining       as Number  = 0;
+    private var _running         as Boolean = false;
+    private var _connected       as Boolean = false;
+    private var _timer           as Timer.Timer?;
+    private var _session         as ActivityRecording.Session?;
+    // true zodra opname éénmaal gestart is; voorkomt herstart en dubbele stop
+    private var _recordingActive as Boolean = false;
+    // voorkomt dat confirmation meerdere keren verschijnt
+    private var _confirmShown    as Boolean = false;
 
     function initialize() {
         AppBase.initialize();
@@ -30,7 +34,14 @@ class RegattaApp extends Application.AppBase {
         if (_timer != null) {
             (_timer as Timer.Timer).stop();
         }
-        _stopRecording(false);
+        // App sluit: gooi actieve opname weg zonder bevestiging
+        if (_session != null) {
+            try {
+                (_session as ActivityRecording.Session).stop();
+                (_session as ActivityRecording.Session).discard();
+            } catch (ex) {}
+            _session = null;
+        }
         gView = null;
     }
 
@@ -40,16 +51,14 @@ class RegattaApp extends Application.AppBase {
         return [view, new RegattaDelegate()];
     }
 
-    // Lokale tick — telt af/op zodat het scherm vloeiend loopt
     function onTick() as Void {
         if (_running) {
             _remaining -= 1;
         }
-        _updateRecording();
+        _checkRecording();
         _refreshView();
     }
 
-    // Sync vanuit telefoon — alleen bij sleutelmomenten of statuswijziging
     function onPhoneMessage(msg as Communications.PhoneAppMessage) as Void {
         if (!(msg.data instanceof Dictionary)) { return; }
         var data    = msg.data as Dictionary;
@@ -63,24 +72,28 @@ class RegattaApp extends Application.AppBase {
         var isKeyMoment  = (phoneRem == 900 || phoneRem == 600 || phoneRem == 300);
         var bigDrift     = (_remaining - phoneRem).abs() > 10;
 
-        // Accepteer sync bij sleutelmomenten, statuswijziging, grote afwijking, of eerste verbinding
         if (isKeyMoment || runChanged || bigDrift || !_connected) {
             _remaining = phoneRem;
             _running   = phoneRunning;
             _connected = true;
         }
 
-        _updateRecording();
+        _checkRecording();
         _refreshView();
     }
 
-    // Start GPS opname als zeilen activiteit wanneer <= 5 min resterend en timer loopt
-    private function _updateRecording() as Void {
-        if (_running && _remaining <= 300 && _session == null) {
+    private function _checkRecording() as Void {
+        // Start opname eenmalig: timer loopt en <= 5 min resterend
+        if (_running && _remaining <= 300 && !_recordingActive) {
+            _recordingActive = true;
+            _confirmShown    = false;
             _startRecording();
         }
-        if (!_running && _session != null) {
-            _stopRecording(true);
+
+        // Stop en vraag bevestiging: timer gestopt, opname was actief, nog niet gevraagd
+        if (!_running && _recordingActive && _session != null && !_confirmShown) {
+            _confirmShown = true;
+            _stopAndAskSave();
         }
     }
 
@@ -93,23 +106,19 @@ class RegattaApp extends Application.AppBase {
             });
             (_session as ActivityRecording.Session).start();
         } catch (ex) {
-            _session = null;
+            _session         = null;
+            _recordingActive = false;
         }
     }
 
-    private function _stopRecording(save as Boolean) as Void {
+    private function _stopAndAskSave() as Void {
         if (_session == null) { return; }
         var s = _session as ActivityRecording.Session;
         _session = null;
         try {
             s.stop();
-            if (save) {
-                // Bevestiging vragen vóór opslaan
-                var confirm = new WatchUi.Confirmation("Activiteit opslaan?");
-                WatchUi.pushView(confirm, new SaveConfirmDelegate(s), WatchUi.SLIDE_UP);
-            } else {
-                s.discard();
-            }
+            var confirm = new WatchUi.Confirmation("Activiteit opslaan?");
+            WatchUi.pushView(confirm, new SaveConfirmDelegate(s), WatchUi.SLIDE_UP);
         } catch (ex) {}
     }
 
