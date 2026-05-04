@@ -87,11 +87,11 @@ class RegattaApp extends Application.AppBase {
         try {
             _session = ActivityRecording.createSession({
                 :name     => "Zeilen",
-                :sport    => ActivityRecording.SPORT_GENERIC,
-                :subSport => ActivityRecording.SUB_SPORT_GENERIC
+                :sport    => 41,  // FIT sport code sailing
+                :subSport => 0
             });
             (_session as ActivityRecording.Session).start();
-        } catch (e instanceof Exception) {
+        } catch (ex) {
             _session = null;
         }
     }
@@ -109,7 +109,7 @@ class RegattaApp extends Application.AppBase {
             } else {
                 s.discard();
             }
-        } catch (e instanceof Exception) {}
+        } catch (ex) {}
     }
 
     private function _refreshView() as Void {
