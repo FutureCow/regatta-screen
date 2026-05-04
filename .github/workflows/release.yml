@@ -56,7 +56,10 @@ jobs:
             "deviceId": "fr965",
             "displayName": "Forerunner 965",
             "deviceFamily": "round-454x454",
-            "partNumbers": ["006-B4315-00"],
+            "worldWidePartNumber": "006-B4315-00",
+            "partNumbers": [
+              { "number": "006-B4315-00", "firmwareVersion": "2502", "connectIQVersion": "5.2.0" }
+            ],
             "resolution": { "width": 454, "height": 454 },
             "bitsPerPixel": 16,
             "orientation": "GFX_ORNTN_0",
