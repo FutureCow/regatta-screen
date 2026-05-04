@@ -49,6 +49,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _listenToGarmin() {
+    // Stuur huidige status zodra Garmin verbinding kans heeft gehad om op te starten
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      final state = ref.read(timerNotifierProvider);
+      _garmin.sendTimerState(
+        remainingSeconds: state.remaining.inSeconds,
+        running: state.isRunning,
+      );
+    });
+
     _garminSub = _garmin.commands.listen((cmd) {
       final timer = ref.read(timerNotifierProvider.notifier);
       switch (cmd) {
