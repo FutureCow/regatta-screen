@@ -1,3 +1,4 @@
+import Toybox.ActivityRecording;
 import Toybox.Application;
 import Toybox.Communications;
 import Toybox.Lang;
@@ -10,7 +11,9 @@ class RegattaApp extends Application.AppBase {
 
     private var _remaining as Number = 0;
     private var _running   as Boolean = false;
+    private var _connected as Boolean = false;
     private var _timer     as Timer.Timer?;
+    private var _session   as ActivityRecording.Session?;
 
     function initialize() {
         AppBase.initialize();
@@ -26,6 +29,7 @@ class RegattaApp extends Application.AppBase {
         if (_timer != null) {
             (_timer as Timer.Timer).stop();
         }
+        _stopRecording(false);
         gView = null;
     }
 
@@ -35,29 +39,77 @@ class RegattaApp extends Application.AppBase {
         return [view, new RegattaDelegate()];
     }
 
-    // Lokale tick — telt af zodat het scherm vloeiend loopt tussen telefoonberichten
+    // Lokale tick — telt af/op zodat het scherm vloeiend loopt
     function onTick() as Void {
-        if (_running && _remaining > 0) {
+        if (_running) {
             _remaining -= 1;
         }
-        if (gView != null) {
-            (gView as RegattaView).update(_remaining, _running, true);
-            WatchUi.requestUpdate();
+        _updateRecording();
+        _refreshView();
+    }
+
+    // Sync vanuit telefoon — alleen bij sleutelmomenten of statuswijziging
+    function onPhoneMessage(msg as Communications.PhoneAppMessage) as Void {
+        if (!(msg.data instanceof Dictionary)) { return; }
+        var data    = msg.data as Dictionary;
+        var remData = data["remaining"];
+        var runData = data["running"];
+        if (!(remData instanceof Number) || !(runData instanceof Boolean)) { return; }
+
+        var phoneRem     = remData as Number;
+        var phoneRunning = runData as Boolean;
+        var runChanged   = (phoneRunning != _running);
+        var isKeyMoment  = (phoneRem == 900 || phoneRem == 600 || phoneRem == 300);
+        var bigDrift     = (_remaining - phoneRem).abs() > 10;
+
+        // Accepteer sync bij sleutelmomenten, statuswijziging, grote afwijking, of eerste verbinding
+        if (isKeyMoment || runChanged || bigDrift || !_connected) {
+            _remaining = phoneRem;
+            _running   = phoneRunning;
+            _connected = true;
+        }
+
+        _updateRecording();
+        _refreshView();
+    }
+
+    // Start GPS opname als zeilen activiteit wanneer <= 5 min resterend en timer loopt
+    private function _updateRecording() as Void {
+        if (_running && _remaining <= 300 && _session == null) {
+            _startRecording();
+        }
+        if (!_running && _session != null) {
+            _stopRecording(true);
         }
     }
 
-    // Sync vanuit telefoon — overschrijft lokale teller
-    function onPhoneMessage(msg as Communications.PhoneAppMessage) as Void {
-        if (msg.data instanceof Dictionary) {
-            var data = msg.data as Dictionary;
-            var remaining = data["remaining"];
-            var running   = data["running"];
-            if (remaining instanceof Number) { _remaining = remaining as Number; }
-            if (running instanceof Boolean)  { _running   = running  as Boolean; }
-            if (gView != null) {
-                (gView as RegattaView).update(_remaining, _running, true);
-                WatchUi.requestUpdate();
-            }
+    private function _startRecording() as Void {
+        try {
+            _session = ActivityRecording.createSession({
+                :name     => "Zeilen",
+                :sport    => ActivityRecording.SPORT_GENERIC,
+                :subSport => ActivityRecording.SUB_SPORT_GENERIC
+            });
+            (_session as ActivityRecording.Session).start();
+        } catch (e instanceof Exception) {
+            _session = null;
+        }
+    }
+
+    private function _stopRecording(save as Boolean) as Void {
+        if (_session == null) { return; }
+        var s = _session as ActivityRecording.Session;
+        try {
+            s.stop();
+            if (save) { s.save(); } else { s.discard(); }
+        } catch (e instanceof Exception) {}
+        _session = null;
+    }
+
+    private function _refreshView() as Void {
+        if (gView != null) {
+            (gView as RegattaView).update(_remaining, _running, _connected);
+            WatchUi.requestUpdate();
         }
     }
 }

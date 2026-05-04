@@ -38,9 +38,14 @@ class RegattaView extends WatchUi.View {
             return;
         }
 
+        // Na 0:00 telt de watch als elapsed time op
+        var elapsed = _running && _remaining < 0;
+
         // Timerkleur
         var timerColor;
-        if (_running) {
+        if (elapsed) {
+            timerColor = Graphics.COLOR_RED;
+        } else if (_running) {
             timerColor = _remaining > 60 ? Graphics.COLOR_GREEN
                        : _remaining > 0  ? Graphics.COLOR_ORANGE
                                          : Graphics.COLOR_RED;
@@ -48,30 +53,35 @@ class RegattaView extends WatchUi.View {
             timerColor = Graphics.COLOR_LT_GRAY;
         }
 
-        // Timer MM:SS
+        // Timer MM:SS (na 0:00 tonen als +mm:ss)
+        var timeStr = elapsed
+            ? ("+" + formatTime(-_remaining))
+            : formatTime(_remaining);
         dc.setColor(timerColor, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, cy - 30, Graphics.FONT_NUMBER_HOT,
-                    formatTime(_remaining),
+                    timeStr,
                     Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
         // Status
-        var statusStr = _running
-            ? WatchUi.loadResource(Rez.Strings.Running) as String
-            : WatchUi.loadResource(Rez.Strings.Paused)  as String;
+        var statusStr = elapsed
+            ? (WatchUi.loadResource(Rez.Strings.Running) as String)
+            : (_running
+                ? WatchUi.loadResource(Rez.Strings.Running) as String
+                : WatchUi.loadResource(Rez.Strings.Paused)  as String);
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, cy + 55, Graphics.FONT_SMALL,
                     statusStr,
                     Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
-        // Knophints — rechts, bij de fysieke knoppen (FR965)
+        // Knophints — +1/-1 links, start/stop rechtsboven (FR965)
         dc.setColor(0x404040, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w - 30, cy - 110, Graphics.FONT_XTINY,
+        dc.drawText(30, cy - 20, Graphics.FONT_XTINY,
                     WatchUi.loadResource(Rez.Strings.HintUp) as String,
-                    Graphics.TEXT_JUSTIFY_RIGHT);
-        dc.drawText(w - 30, cy + 90, Graphics.FONT_XTINY,
+                    Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(30, cy + 80, Graphics.FONT_XTINY,
                     WatchUi.loadResource(Rez.Strings.HintDown) as String,
-                    Graphics.TEXT_JUSTIFY_RIGHT);
-        dc.drawText(w - 30, cy - 10, Graphics.FONT_XTINY,
+                    Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(w - 30, 50, Graphics.FONT_XTINY,
                     WatchUi.loadResource(Rez.Strings.HintEnter) as String,
                     Graphics.TEXT_JUSTIFY_RIGHT);
     }
