@@ -10,14 +10,7 @@ class TimerMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     function onSelect(item as WatchUi.MenuItem) as Void {
         var id = item.getId() as Symbol;
-        var cmd as String;
-        if (id == :five) {
-            cmd = "set_5";
-        } else if (id == :ten) {
-            cmd = "set_10";
-        } else {
-            cmd = "set_15";
-        }
+        var cmd = (id == :five) ? "set_5" : (id == :ten) ? "set_10" : "set_15";
         var msg = {"cmd" => cmd} as Dictionary;
         Communications.transmit(msg, null, new Communications.ConnectionListener());
         WatchUi.popView(WatchUi.SLIDE_DOWN);
