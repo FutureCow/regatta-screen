@@ -57,12 +57,7 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
             connectIQ = ConnectIQ.getInstance(ctx, ConnectIQ.IQConnectType.WIRELESS)
             connectIQ?.initialize(ctx, false, object : ConnectIQ.ConnectIQListener {
                 override fun onSdkReady() {
-                    // Probeer al verbonden apparaten
-                    val devices = connectIQ?.connectedDevices
-                    if (!devices.isNullOrEmpty()) {
-                        activateDevice(devices[0])
-                    }
-                    // Luister ook naar toekomstige verbindingswijzigingen
+                    refreshConnectedDevice()
                     registerForDeviceEvents()
                 }
                 override fun onInitializeError(status: ConnectIQ.IQSdkErrorStatus) {}
@@ -76,26 +71,36 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         }
     }
 
-    private fun registerForDeviceEvents() {
-        val knownDevices = try {
-            connectIQ?.knownDevices
-        } catch (e: Exception) { null } ?: return
+    // Haal het eerste verbonden apparaat op en activeer het
+    private fun refreshConnectedDevice() {
+        try {
+            val devices = connectIQ?.connectedDevices
+            if (!devices.isNullOrEmpty() && connectedDevice == null) {
+                activateDevice(devices[0])
+            }
+        } catch (e: Exception) {}
+    }
 
-        for (device in knownDevices) {
-            try {
-                connectIQ?.registerForDeviceEvents(device) { dev, status ->
-                    when (status) {
-                        IQDevice.IQDeviceStatus.CONNECTED -> activateDevice(dev)
-                        else -> {
-                            if (connectedDevice?.deviceIdentifier == dev.deviceIdentifier) {
+    private fun registerForDeviceEvents() {
+        try {
+            val known = connectIQ?.knownDevices ?: return
+            for (device in known) {
+                connectIQ?.registerForDeviceEvents(device,
+                    object : ConnectIQ.IQDeviceEventListener {
+                        override fun onDeviceStatusChanged(
+                            dev: IQDevice,
+                            status: IQDevice.IQDeviceStatus
+                        ) {
+                            if (status == IQDevice.IQDeviceStatus.CONNECTED) {
+                                activateDevice(dev)
+                            } else if (connectedDevice?.deviceIdentifier == dev.deviceIdentifier) {
                                 connectedDevice = null
                                 watchApp = null
                             }
                         }
-                    }
-                }
-            } catch (e: Exception) {}
-        }
+                    })
+            }
+        } catch (e: Exception) {}
     }
 
     private fun activateDevice(device: IQDevice) {
@@ -107,25 +112,25 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     private fun registerForWatchMessages() {
         val device = connectedDevice ?: return
         val app    = watchApp ?: return
-
-        connectIQ?.registerForAppEvents(device, app,
-            object : ConnectIQ.IQApplicationEventListener {
-                override fun onMessageReceived(
-                    device: IQDevice,
-                    app: IQApp,
-                    messageData: List<*>,
-                    status: ConnectIQ.IQMessageStatus
-                ) {
-                    if (status != ConnectIQ.IQMessageStatus.SUCCESS) return
-                    for (item in messageData) {
-                        @Suppress("UNCHECKED_CAST")
-                        val map = item as? Map<String, Any> ?: continue
-                        val cmd = map["cmd"] as? String ?: continue
-                        eventSink?.success(cmd)
+        try {
+            connectIQ?.registerForAppEvents(device, app,
+                object : ConnectIQ.IQApplicationEventListener {
+                    override fun onMessageReceived(
+                        device: IQDevice,
+                        app: IQApp,
+                        messageData: List<*>,
+                        status: ConnectIQ.IQMessageStatus
+                    ) {
+                        if (status != ConnectIQ.IQMessageStatus.SUCCESS) return
+                        for (item in messageData) {
+                            @Suppress("UNCHECKED_CAST")
+                            val map = item as? Map<String, Any> ?: continue
+                            val cmd = map["cmd"] as? String ?: continue
+                            eventSink?.success(cmd)
+                        }
                     }
-                }
-            }
-        )
+                })
+        } catch (e: Exception) {}
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
@@ -133,6 +138,8 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
             "sendTimerState" -> {
                 val remaining = call.argument<Int>("remaining") ?: 0
                 val running   = call.argument<Boolean>("running") ?: false
+                // Probeer device te vinden als het nog niet bekend is
+                if (connectedDevice == null) refreshConnectedDevice()
                 sendToWatch(mapOf("remaining" to remaining, "running" to running))
                 result.success(null)
             }
@@ -143,14 +150,15 @@ class GarminPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     private fun sendToWatch(data: Map<String, Any>) {
         val device = connectedDevice ?: return
         val app    = watchApp ?: return
-        connectIQ?.sendMessage(device, app, data,
-            object : ConnectIQ.IQSendMessageListener {
-                override fun onMessageStatus(
-                    device: IQDevice,
-                    app: IQApp,
-                    status: ConnectIQ.IQMessageStatus
-                ) {}
-            }
-        )
+        try {
+            connectIQ?.sendMessage(device, app, data,
+                object : ConnectIQ.IQSendMessageListener {
+                    override fun onMessageStatus(
+                        device: IQDevice,
+                        app: IQApp,
+                        status: ConnectIQ.IQMessageStatus
+                    ) {}
+                })
+        } catch (e: Exception) {}
     }
 }
