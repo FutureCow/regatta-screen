@@ -44,7 +44,7 @@ class RegattaView extends WatchUi.View {
         // Timerkleur
         var timerColor;
         if (elapsed) {
-            timerColor = Graphics.COLOR_RED;
+            timerColor = Graphics.COLOR_BLUE;
         } else if (_running) {
             timerColor = _remaining > 60 ? Graphics.COLOR_GREEN
                        : _remaining > 0  ? Graphics.COLOR_ORANGE
@@ -53,9 +53,9 @@ class RegattaView extends WatchUi.View {
             timerColor = Graphics.COLOR_LT_GRAY;
         }
 
-        // Timer MM:SS (na 0:00 tonen als +mm:ss)
+        // Timer MM:SS — geen + prefix tijdens optellen
         var timeStr = elapsed
-            ? ("+" + formatTime(-_remaining))
+            ? formatTime(-_remaining)
             : formatTime(_remaining);
         dc.setColor(timerColor, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, cy - 30, Graphics.FONT_NUMBER_HOT,

@@ -17,17 +17,21 @@ class RegattaDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // Knop: Up  →  +1 minuut
+    // Knop: Up  →  +1 minuut (niet tijdens optellen)
     function onNextPage() as Boolean {
-        sendCommand("minus_one");
-        getApp().roundDown();
+        if (!getApp().isElapsed()) {
+            sendCommand("minus_one");
+            getApp().roundDown();
+        }
         return true;
     }
 
-    // Knop: Down  →  -1 minuut
+    // Knop: Down  →  -1 minuut (niet tijdens optellen)
     function onPreviousPage() as Boolean {
-        sendCommand("plus_one");
-        getApp().roundUp();
+        if (!getApp().isElapsed()) {
+            sendCommand("plus_one");
+            getApp().roundUp();
+        }
         return true;
     }
 

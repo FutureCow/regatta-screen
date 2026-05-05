@@ -84,6 +84,10 @@ class RegattaApp extends Application.AppBase {
     }
 
     // Directe lokale aanpassing bij knopdruk — telefoon synct de exacte waarde kort daarna
+    function isElapsed() as Boolean {
+        return _remaining < 0;
+    }
+
     function toggleRunning() as Void {
         _running = !_running;
         _checkRecording();
