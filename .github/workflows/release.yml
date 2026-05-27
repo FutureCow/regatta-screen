@@ -114,6 +114,13 @@ jobs:
           KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: flutter build apk --release
 
+      # ── Web bestanden (voor update.sh) ──────────────────────────────────────
+      - name: Package web files
+        run: |
+          cd web
+          zip -r ../web.zip . -x ".*" -x "__MACOSX"
+          echo "web.zip: $(ls -lh ../web.zip)"
+
       # ── GitHub release ─────────────────────────────────────────────────────
       - name: Upload Garmin bestanden to release
         if: steps.garmin_build.outcome == 'success'
@@ -129,3 +136,9 @@ jobs:
         with:
           name: ${{ github.ref_name }}
           files: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Upload web.zip to release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          files: web.zip
