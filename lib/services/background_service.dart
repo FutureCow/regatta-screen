@@ -1,5 +1,6 @@
 // lib/services/background_service.dart
 import 'dart:async';
+import 'package:flutter/services.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_background_service_android/flutter_background_service_android.dart';
 
@@ -14,7 +15,7 @@ class BackgroundServiceManager {
     final service = FlutterBackgroundService();
 
     await service.configure(
-      iosConfiguration: IosConfiguration(
+      iosConfiguration: const IosConfiguration(
         autoStart: false,
         onForeground: null,
         onBackground: null,
@@ -50,18 +51,28 @@ class BackgroundServiceManager {
   }
 
   static Future<void> startRecording() async {
-    final service = FlutterBackgroundService();
-    if (!(await service.isRunning())) {
-      await service.startService();
+    try {
+      final service = FlutterBackgroundService();
+      if (!(await service.isRunning())) {
+        await service.startService();
+      }
+      service.invoke('setAsForeground', {
+        'notificationTitle': 'Regatta Screen',
+        'notificationContent': 'GPS en timer actief — opname loopt',
+      });
+    } on PlatformException {
+      // Foreground service not available — recording still works in foreground
+    } on MissingPluginException {
+      // Plugin not registered — app runs without background service
     }
-    service.invoke('setAsForeground', {
-      'notificationTitle': 'Regatta Screen',
-      'notificationContent': 'GPS en timer actief — opname loopt',
-    });
   }
 
   static Future<void> stopRecording() async {
-    final service = FlutterBackgroundService();
-    service.invoke('stopService');
+    try {
+      final service = FlutterBackgroundService();
+      service.invoke('stopService');
+    } on PlatformException {
+      // Service already stopped or not available
+    }
   }
 }
