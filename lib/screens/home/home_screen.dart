@@ -11,6 +11,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../services/garmin_service.dart';
 import '../../logic/timer_notifier.dart';
+import '../../services/background_service.dart';
 import '../../widgets/tack_indicator.dart';
 import '../timer/timer_screen.dart';
 import '../startline/startline_screen.dart';
@@ -162,10 +163,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           !recorder.isRecording &&
           next.remaining <= const Duration(minutes: 5)) {
         recorder.start(ref.read(gpsServiceProvider).positionStream);
+        BackgroundServiceManager.startRecording();
       }
 
       // Stop GPS recording when the timer is stopped or reset
       if (prev.isRunning && !next.isRunning && recorder.isRecording) {
+        BackgroundServiceManager.stopRecording();
         recorder.stop().then((file) {
           if (file == null) return;
           final auth = ref.read(authProvider);
