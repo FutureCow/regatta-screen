@@ -42,6 +42,9 @@ class SettingsService {
         'authEmail': s.authEmail,
         'activeRaceCode': s.activeRaceCode,
         'activeRaceLabel': s.activeRaceLabel,
+        'boatType': s.boatType,
+        'boatName': s.boatName,
+        'teamName': s.teamName,
       };
 
   AppSettings _fromJson(Map<String, dynamic> j) => AppSettings(
@@ -63,5 +66,8 @@ class SettingsService {
         authEmail: j['authEmail'] as String?,
         activeRaceCode: j['activeRaceCode'] as String?,
         activeRaceLabel: j['activeRaceLabel'] as String?,
+        boatType: j['boatType'] as String?,
+        boatName: j['boatName'] as String?,
+        teamName: j['teamName'] as String?,
       );
 }

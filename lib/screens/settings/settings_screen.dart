@@ -65,6 +65,39 @@ class _SettingsBody extends ConsumerWidget {
               ),
           ]),
 
+          // ── Boot & Team ───────────────────────────────────────────────────
+          if (auth.isLoggedIn) ...[
+            _Section('Boot & Team', [
+              _ProfileField(
+                label: 'Boot type',
+                hint: 'bijv. Randmeer, Valk, Laser',
+                value: settings.boatType ?? '',
+                onSaved: (v) {
+                  ref.read(authProvider.notifier).updateProfile(boatType: v);
+                  update(settings.copyWith(boatType: v));
+                },
+              ),
+              _ProfileField(
+                label: 'Boot naam',
+                hint: 'bijv. De Vliegende Hollander',
+                value: settings.boatName ?? '',
+                onSaved: (v) {
+                  ref.read(authProvider.notifier).updateProfile(boatName: v);
+                  update(settings.copyWith(boatName: v));
+                },
+              ),
+              _ProfileField(
+                label: 'Team naam',
+                hint: 'bijv. WV de Zuidwal',
+                value: settings.teamName ?? '',
+                onSaved: (v) {
+                  ref.read(authProvider.notifier).updateProfile(teamName: v);
+                  update(settings.copyWith(teamName: v));
+                },
+              ),
+            ]),
+          ],
+
           // ── Eenheden ──────────────────────────────────────────────────────
           _Section('Eenheden', [
             _DropdownTile<SpeedUnit>(
@@ -267,6 +300,64 @@ class _SettingsBody extends ConsumerWidget {
               },
               child: const Text('Opslaan')),
         ],
+      ),
+    );
+  }
+}
+
+class _ProfileField extends StatefulWidget {
+  final String label;
+  final String hint;
+  final String value;
+  final void Function(String) onSaved;
+
+  const _ProfileField({
+    required this.label,
+    required this.hint,
+    required this.value,
+    required this.onSaved,
+  });
+
+  @override
+  State<_ProfileField> createState() => _ProfileFieldState();
+}
+
+class _ProfileFieldState extends State<_ProfileField> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+  }
+
+  @override
+  void didUpdateWidget(_ProfileField old) {
+    super.didUpdateWidget(old);
+    if (old.value != widget.value && _controller.text != widget.value) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(widget.label),
+      subtitle: TextField(
+        controller: _controller,
+        decoration: InputDecoration(
+          hintText: widget.hint,
+          border: InputBorder.none,
+          isDense: true,
+          contentPadding: EdgeInsets.zero,
+        ),
+        onChanged: widget.onSaved,
       ),
     );
   }

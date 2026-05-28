@@ -24,17 +24,64 @@ class ApiService {
 
   /// Registers a new user. Returns a map containing 'token' and 'email'.
   /// Throws a [String] error message on failure.
-  Future<Map<String, dynamic>> register(String email, String password) async {
+  Future<Map<String, dynamic>> register(
+    String email,
+    String password, {
+    String? boatType,
+    String? boatName,
+    String? teamName,
+  }) async {
     final res = await http.post(
       Uri.parse('$baseUrl/auth/register'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
+      body: jsonEncode({
+        'email': email,
+        'password': password,
+        if (boatType != null) 'boat_type': boatType,
+        if (boatName != null) 'boat_name': boatName,
+        if (teamName != null) 'team_name': teamName,
+      }),
     );
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     if (res.statusCode != 201) {
       throw data['error'] as String? ?? 'Registratie mislukt.';
     }
     return data;
+  }
+
+  /// Fetch current user profile (boat/team info).
+  Future<Map<String, dynamic>> fetchProfile(String token) async {
+    final res = await http.get(
+      Uri.parse('$baseUrl/auth/me'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (res.statusCode != 200) {
+      throw 'Kon profiel niet ophalen.';
+    }
+    return jsonDecode(res.body) as Map<String, dynamic>;
+  }
+
+  /// Update boat/team profile on the server.
+  Future<void> updateProfile(String token, {
+    String? boatType,
+    String? boatName,
+    String? teamName,
+  }) async {
+    final res = await http.put(
+      Uri.parse('$baseUrl/auth/profile'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'boat_type': boatType,
+        'boat_name': boatName,
+        'team_name': teamName,
+      }),
+    );
+    if (res.statusCode != 200) {
+      throw 'Profiel updaten mislukt.';
+    }
   }
 
   /// Returns all server tracks for this user as raw maps (includes id, filename, original_filename).

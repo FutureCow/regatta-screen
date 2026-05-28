@@ -30,6 +30,10 @@ class AppSettings {
   // Active race code — new tracks are automatically linked to this race/class
   final String? activeRaceCode;
   final String? activeRaceLabel;
+  // Boat & team profile (synced to server)
+  final String? boatType;
+  final String? boatName;
+  final String? teamName;
 
   const AppSettings({
     this.speedUnit = SpeedUnit.knots,
@@ -50,6 +54,9 @@ class AppSettings {
     this.authEmail,
     this.activeRaceCode,
     this.activeRaceLabel,
+    this.boatType,
+    this.boatName,
+    this.teamName,
   });
 
   factory AppSettings.defaults() => AppSettings(
@@ -79,6 +86,9 @@ class AppSettings {
     Object? authEmail = _unset,
     Object? activeRaceCode = _unset,
     Object? activeRaceLabel = _unset,
+    Object? boatType = _unset,
+    Object? boatName = _unset,
+    Object? teamName = _unset,
   }) =>
       AppSettings(
         speedUnit: speedUnit ?? this.speedUnit,
@@ -103,5 +113,8 @@ class AppSettings {
         authEmail: authEmail == _unset ? this.authEmail : authEmail as String?,
         activeRaceCode: activeRaceCode == _unset ? this.activeRaceCode : activeRaceCode as String?,
         activeRaceLabel: activeRaceLabel == _unset ? this.activeRaceLabel : activeRaceLabel as String?,
+        boatType: boatType == _unset ? this.boatType : boatType as String?,
+        boatName: boatName == _unset ? this.boatName : boatName as String?,
+        teamName: teamName == _unset ? this.teamName : teamName as String?,
       );
 }

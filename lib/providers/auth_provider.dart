@@ -45,6 +45,49 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  Future<void> fetchProfile() async {
+    final token = state.token;
+    if (token == null) return;
+    try {
+      final profile = await ref.read(apiServiceProvider).fetchProfile(token);
+      final current = ref.read(settingsProvider).valueOrNull;
+      if (current != null) {
+        await ref.read(settingsProvider.notifier).save(
+              current.copyWith(
+                boatType: profile['boatType'] as String?,
+                boatName: profile['boatName'] as String?,
+                teamName: profile['teamName'] as String?,
+              ),
+            );
+      }
+    } catch (_) {}
+  }
+
+  Future<void> updateProfile({
+    String? boatType,
+    String? boatName,
+    String? teamName,
+  }) async {
+    final token = state.token;
+    if (token == null) return;
+    await ref.read(apiServiceProvider).updateProfile(
+      token,
+      boatType: boatType,
+      boatName: boatName,
+      teamName: teamName,
+    );
+    final current = ref.read(settingsProvider).valueOrNull;
+    if (current != null) {
+      await ref.read(settingsProvider.notifier).save(
+            current.copyWith(
+              boatType: boatType ?? current.boatType,
+              boatName: boatName ?? current.boatName,
+              teamName: teamName ?? current.teamName,
+            ),
+          );
+    }
+  }
+
   Future<void> _persist(String token, String email) async {
     state = AuthState(token: token, email: email);
     final current = ref.read(settingsProvider).valueOrNull;
@@ -53,6 +96,8 @@ class AuthNotifier extends Notifier<AuthState> {
             current.copyWith(authToken: token, authEmail: email),
           );
     }
+    // Fetch boat/team profile from server
+    fetchProfile();
   }
 }
 
